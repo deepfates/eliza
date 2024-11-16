@@ -96,7 +96,7 @@ You set which model to use inside the character JSON file
 
 1. **Create a Character File**
 
-   Check out `characters/trump.character.json` or `characters/tate.character.json` as a template you can use to copy and customize your agent's personality and behavior.
+   Check out `characters/default.character.json` as a template you can use to copy and customize your agent's personality and behavior.
    Additionally you can read `core/src/core/defaultCharacter.ts` (in 0.0.10 but post-refactor will be in `packages/core/src/defaultCharacter.ts`)
 
    📝 [Character Documentation](./core/characterfile.md)
@@ -106,13 +106,13 @@ You set which model to use inside the character JSON file
    Inform it which character you want to run:
 
    ```bash
-   pnpm start --character="characters/trump.character.json"
+   pnpm start --character="characters/default.character.json"
    ```
 
    You can also load multiple characters with the characters option with a comma separated list:
 
    ```bash
-   pnpm start --characters="characters/trump.character.json,characters/tate.character.json"
+   pnpm start --characters="characters/default.character.json,characters/other.character.json"
    ```
 
 ## Platform Integration
@@ -167,7 +167,7 @@ pnpm start
 ### Run Multiple Agents
 
 ```bash
-pnpm start --characters="characters/trump.character.json,characters/tate.character.json"
+pnpm start --characters="characters/default.character.json,characters/other.character.json"
 ```
 
 ## Common Issues & Solutions
