@@ -20,8 +20,8 @@ A `characterfile` implements the [Character](/api/type-aliases) type and defines
 ```json
 {
     "name": "TechAI",
-    "modelProvider": "ANTHROPIC",
-    "clients": ["DISCORD", "DIRECT"],
+    "modelProvider": "llama_cloud",
+    "clients": ["discord", "direct"],
     "settings": {
         "model": "claude-3-opus-20240229",
         "voice": { "model": "en-US-neural" }
