@@ -239,7 +239,7 @@ export class TwitterSearchClient extends ClientBase {
                 const description = await this.runtime
                     .getService(ServiceType.IMAGE_DESCRIPTION)
                     .getInstance<IImageDescriptionService>()
-                    .describeImage(photo.url);
+                    .describeImage(photo.url, this.runtime);
                 imageDescriptions.push(description);
             }
 
