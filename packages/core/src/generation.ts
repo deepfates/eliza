@@ -853,7 +853,7 @@ export const generateCaption = async (
     const resp = await runtime
         .getService(ServiceType.IMAGE_DESCRIPTION)
         .getInstance<IImageDescriptionService>()
-        .describeImage(imageUrl);
+        .describeImage(imageUrl, runtime);
     return {
         title: resp.title.trim(),
         description: resp.description.trim(),

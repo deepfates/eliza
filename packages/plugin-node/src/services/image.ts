@@ -87,8 +87,8 @@ export class ImageDescriptionService extends Service {
 
     async describeImage(
         imageUrl: string,
-        device?: string,
-        runtime?: IAgentRuntime
+        runtime: IAgentRuntime,
+        device?: string
     ): Promise<{ title: string; description: string }> {
         this.initialize(device, runtime);
 

@@ -291,7 +291,7 @@ export class AttachmentManager {
             const { description, title } = await this.runtime
                 .getService(ServiceType.IMAGE_DESCRIPTION)
                 .getInstance<IImageDescriptionService>()
-                .describeImage(attachment.url);
+                .describeImage(attachment.url, this.runtime);
             return {
                 id: attachment.id,
                 url: attachment.url,
