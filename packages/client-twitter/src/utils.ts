@@ -1,6 +1,6 @@
 // utils.ts
 
-import { Tweet } from "agent-twitter-client";
+import { Tweet } from "goat-x";
 import { embeddingZeroVector } from "@ai16z/eliza";
 import { Content, Memory, UUID } from "@ai16z/eliza";
 import { stringToUuid } from "@ai16z/eliza";

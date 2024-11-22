@@ -9,12 +9,7 @@ import {
     stringToUuid,
     UUID,
 } from "@ai16z/eliza";
-import {
-    QueryTweetsResponse,
-    Scraper,
-    SearchMode,
-    Tweet,
-} from "agent-twitter-client";
+import { QueryTweetsResponse, Scraper, SearchMode, Tweet } from "goat-x";
 import { EventEmitter } from "events";
 import fs from "fs";
 import path from "path";
@@ -167,8 +162,8 @@ export class ClientBase extends EventEmitter {
         this.directions =
             "- " +
             this.runtime.character.style.all.join("\n- ") +
-            "- " +
-            this.runtime.character.style.post.join();
+            "\n- " +
+            this.runtime.character.style.post.join("\n- ");
 
         try {
             // console.log("this.tweetCacheFilePath", this.tweetCacheFilePath);
@@ -391,9 +386,12 @@ export class ClientBase extends EventEmitter {
         // Check if the cache file exists
         if (fs.existsSync(cacheFile)) {
             // Read the cached search results from the file
+            console.log("Loading tweets from cache");
+            console.log(cacheFile);
             const cachedResults = JSON.parse(
                 fs.readFileSync(cacheFile, "utf-8")
             );
+            console.log("cachedResults", cachedResults);
 
             // Get the existing memories from the database
             const existingMemories =
@@ -579,6 +577,7 @@ export class ClientBase extends EventEmitter {
     }
 
     async setCookiesFromArray(cookiesArray: any[]) {
+        console.log("cookiesArray", cookiesArray);
         const cookieStrings = cookiesArray.map(
             (cookie) =>
                 `${cookie.key}=${cookie.value}; Domain=${cookie.domain}; Path=${cookie.path}; ${
@@ -587,6 +586,7 @@ export class ClientBase extends EventEmitter {
                     cookie.sameSite || "Lax"
                 }`
         );
+        console.log("cookieStrings", cookieStrings);
         await this.twitterClient.setCookies(cookieStrings);
     }
 

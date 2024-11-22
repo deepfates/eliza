@@ -72,6 +72,23 @@
         "together-ai": "^0.7.0",
         "unique-names-generator": "4.7.1",
         "uuid": "11.0.2",
+        "wav": "1.0.2",
+        "wav-encoder": "1.3.0",
+        "wavefile": "11.0.0",
+        "whisper-turbo": "0.11.0",
+        "ws": "8.18.0",
+        "yargs": "17.7.2",
+        "youtube-dl-exec": "3.0.10",
+        "goat-x": "1.1.0",
         "zod": "^3.23.8"
+    },
+    "trustedDependencies": {
+        "onnxruntime-node": "^1.20.0",
+        "@discordjs/opus": "github:discordjs/opus",
+        "@discordjs/voice": "0.17.0",
+        "sharp": "^0.33.5"
+    },
+    "peerDependencies": {
+        "onnxruntime-node": "^1.20.0"
     }
 }
