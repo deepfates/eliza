@@ -5,14 +5,14 @@ import { DiscordClientInterface } from "@ai16z/client-discord";
 import { AutoClientInterface } from "@ai16z/client-auto";
 import { TelegramClientInterface } from "@ai16z/client-telegram";
 import { TwitterClientInterface } from "@ai16z/client-twitter";
-import { defaultCharacter } from "@ai16z/eliza";
-import { AgentRuntime } from "@ai16z/eliza";
-import { settings } from "@ai16z/eliza";
 import {
+    defaultCharacter,
+    AgentRuntime,
+    settings,
     Character,
     IAgentRuntime,
-    IDatabaseAdapter,
     ModelProviderName,
+    elizaLogger,
 } from "@ai16z/eliza";
 import { bootstrapPlugin } from "@ai16z/plugin-bootstrap";
 import { solanaPlugin } from "@ai16z/plugin-solana";
@@ -21,6 +21,7 @@ import Database from "better-sqlite3";
 import fs from "fs";
 import readline from "readline";
 import yargs from "yargs";
+import { character } from "./character.ts";
 
 export const wait = (minTime: number = 1000, maxTime: number = 3000) => {
     const waitTime =
@@ -57,18 +58,10 @@ export async function loadCharacters(
         ?.split(",")
         .map((path) => path.trim())
         .map((path) => {
-            if (path.startsWith("../characters")) {
-                return `../${path}`;
-            }
-            if (path.startsWith("characters")) {
-                return `../../${path}`;
-            }
-            if (path.startsWith("./characters")) {
-                return `../.${path}`;
-            }
-            return path;
+            if (path[0] === "/") return path; // handle absolute paths
+            // assume relative to the project root where pnpm is ran
+            return `../${path}`;
         });
-
     const loadedCharacters = [];
 
     if (characterPaths?.length > 0) {
@@ -95,6 +88,8 @@ export async function loadCharacters(
                 loadedCharacters.push(character);
             } catch (e) {
                 console.error(`Error loading character from ${path}: ${e}`);
+                // don't continue to load if a specified file is not found
+                process.exit(1);
             }
         }
     }
@@ -155,27 +150,12 @@ export function getTokenForProvider(
                 character.settings?.secrets?.HEURIST_API_KEY ||
                 settings.HEURIST_API_KEY
             );
+        case ModelProviderName.GROQ:
+            return (
+                character.settings?.secrets?.GROQ_API_KEY ||
+                settings.GROQ_API_KEY
+            );
     }
-}
-
-export async function createDirectRuntime(
-    character: Character,
-    db: IDatabaseAdapter,
-    token: string
-) {
-    console.log("Creating runtime for character", character.name);
-    return new AgentRuntime({
-        databaseAdapter: db,
-        token,
-        modelProvider: character.modelProvider,
-        evaluators: [],
-        character,
-        plugins: [],
-        providers: [],
-        actions: [],
-        services: [],
-        managers: [],
-    });
 }
 
 function initializeDatabase() {
@@ -215,6 +195,16 @@ export async function initializeClients(
         clients.push(twitterClients);
     }
 
+    if (character.plugins?.length > 0) {
+        for (const plugin of character.plugins) {
+            if (plugin.clients) {
+                for (const client of plugin.clients) {
+                    clients.push(await client.start(runtime));
+                }
+            }
+        }
+    }
+
     return clients;
 }
 
@@ -223,8 +213,11 @@ export async function createAgent(
     db: any,
     token: string
 ) {
-    console.log("Creating runtime for character", character.name);
-    console.log("character.settings.secrets?.WALLET_PUBLIC_KEY", character.settings.secrets?.WALLET_PUBLIC_KEY)
+    elizaLogger.success(
+        elizaLogger.successesTitle,
+        "Creating runtime for character",
+        character.name
+    );
     return new AgentRuntime({
         databaseAdapter: db,
         token,
@@ -263,7 +256,7 @@ async function startAgent(character: Character, directClient: any) {
             `Error starting agent for character ${character.name}:`,
             error
         );
-        throw error; // Re-throw after logging
+        throw error;
     }
 }
 
@@ -273,7 +266,7 @@ const startAgents = async () => {
 
     let charactersArg = args.characters || args.character;
 
-    let characters = [defaultCharacter];
+    let characters = [character];
 
     if (charactersArg) {
         characters = await loadCharacters(charactersArg);
@@ -284,7 +277,7 @@ const startAgents = async () => {
             await startAgent(character, directClient);
         }
     } catch (error) {
-        console.error("Error starting agents:", error);
+        elizaLogger.error("Error starting agents:", error);
     }
 
     function chat() {
@@ -297,12 +290,12 @@ const startAgents = async () => {
         });
     }
 
-    console.log("Chat started. Type 'exit' to quit.");
+    elizaLogger.log("Chat started. Type 'exit' to quit.");
     chat();
 };
 
 startAgents().catch((error) => {
-    console.error("Unhandled error in startAgents:", error);
+    elizaLogger.error("Unhandled error in startAgents:", error);
     process.exit(1); // Exit the process after logging
 });
 

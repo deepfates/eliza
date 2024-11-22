@@ -178,9 +178,8 @@ export class MessageManager {
             }
 
             if (imageUrl) {
-                const { title, description } = await this.imageService
-                    .getInstance()
-                    .describeImage(imageUrl, this.runtime);
+                const { title, description } =
+                    await this.imageService.describeImage(imageUrl);
                 const fullDescription = `[Image: ${title}\n${description}]`;
                 return { description: fullDescription };
             }
@@ -415,7 +414,7 @@ export class MessageManager {
 
             // Decide whether to respond
             const shouldRespond = await this._shouldRespond(message, state);
-            console.log("Should respond", shouldRespond);
+
             if (shouldRespond) {
                 // Generate response
                 const context = composeContext({
@@ -463,12 +462,17 @@ export class MessageManager {
                             content: {
                                 ...content,
                                 text: sentMessage.text,
-                                action: !isLastMessage ? "CONTINUE" : undefined,
                                 inReplyTo: messageId,
                             },
                             createdAt: sentMessage.date * 1000,
                             embedding: embeddingZeroVector,
                         };
+
+                        // Set action to CONTINUE for all messages except the last one
+                        // For the last message, use the original action from the response content
+                        memory.content.action = !isLastMessage
+                            ? "CONTINUE"
+                            : content.action;
 
                         await this.runtime.messageManager.createMemory(memory);
                         memories.push(memory);

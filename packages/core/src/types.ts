@@ -318,6 +318,7 @@ export type Plugin = {
     providers?: Provider[];
     evaluators?: Evaluator[];
     services?: Service[];
+    clients?: Client[];
 };
 
 export enum Clients {
@@ -523,15 +524,24 @@ export interface IMemoryManager {
 
 export abstract class Service {
     private static instance: Service | null = null;
-    static serviceType: ServiceType;
+
+    static get serviceType(): ServiceType {
+        throw new Error("Service must implement static serviceType getter");
+    }
 
     public static getInstance<T extends Service>(): T {
         if (!Service.instance) {
-            // Use this.prototype.constructor to instantiate the concrete class
             Service.instance = new (this as any)();
         }
         return Service.instance as T;
     }
+
+    get serviceType(): ServiceType {
+        return (this.constructor as typeof Service).serviceType;
+    }
+
+    // Add abstract initialize method that must be implemented by derived classes
+    abstract initialize(runtime: IAgentRuntime): Promise<void>;
 }
 
 export interface IAgentRuntime {
@@ -555,7 +565,7 @@ export interface IAgentRuntime {
 
     getMemoryManager(name: string): IMemoryManager | null;
 
-    getService(service: string): typeof Service | null;
+    getService<T extends Service>(service: ServiceType): T | null;
 
     registerService(service: Service): void;
 
@@ -600,7 +610,6 @@ export interface IAgentRuntime {
 
 export interface IImageDescriptionService extends Service {
     getInstance(): IImageDescriptionService;
-    initialize(modelId?: string | null, device?: string | null): Promise<void>;
     describeImage(
         imageUrl: string,
         runtime: IAgentRuntime
@@ -608,6 +617,7 @@ export interface IImageDescriptionService extends Service {
 }
 
 export interface ITranscriptionService extends Service {
+    getInstance(): ITranscriptionService;
     transcribeAttachment(audioBuffer: ArrayBuffer): Promise<string | null>;
     transcribeAttachmentLocally(
         audioBuffer: ArrayBuffer
@@ -617,6 +627,7 @@ export interface ITranscriptionService extends Service {
 }
 
 export interface IVideoService extends Service {
+    getInstance(): IVideoService;
     isVideoUrl(url: string): boolean;
     processVideo(url: string): Promise<Media>;
     fetchVideoInfo(url: string): Promise<Media>;
@@ -646,7 +657,7 @@ export interface ITextGenerationService extends Service {
 }
 
 export interface IBrowserService extends Service {
-    initialize(): Promise<void>;
+    getInstance(): IBrowserService;
     closeBrowser(): Promise<void>;
     getPageContent(
         url: string,
@@ -655,10 +666,12 @@ export interface IBrowserService extends Service {
 }
 
 export interface ISpeechService extends Service {
+    getInstance(): ISpeechService;
     generate(runtime: IAgentRuntime, text: string): Promise<Readable>;
 }
 
 export interface IPdfService extends Service {
+    getInstance(): IPdfService;
     convertPdfToText(pdfBuffer: Buffer): Promise<string>;
 }
 
@@ -670,4 +683,10 @@ export enum ServiceType {
     BROWSER = "browser",
     SPEECH_GENERATION = "speech_generation",
     PDF = "pdf",
+}
+
+export enum LoggingLevel {
+    DEBUG = "debug",
+    VERBOSE = "verbose",
+    NONE = "none",
 }
