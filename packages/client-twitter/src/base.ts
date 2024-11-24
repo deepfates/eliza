@@ -55,7 +55,7 @@ class RequestQueue {
             try {
                 await request();
             } catch (error) {
-                console.error("Error processing request:", error);
+                elizaLogger.error("Error processing request:", error);
                 this.queue.unshift(request);
                 await this.exponentialBackoff(this.queue.length);
             }
@@ -92,7 +92,7 @@ export class ClientBase extends EventEmitter {
 
     async cacheTweet(tweet: Tweet): Promise<void> {
         if (!tweet) {
-            console.warn("Tweet is undefined, skipping cache");
+            elizaLogger.warn("Tweet is undefined, skipping cache");
             return;
         }
         const cacheDir = path.join(
@@ -166,17 +166,17 @@ export class ClientBase extends EventEmitter {
             this.runtime.character.style.post.join("\n- ");
 
         try {
-            // console.log("this.tweetCacheFilePath", this.tweetCacheFilePath);
+            // elizaLogger.log("this.tweetCacheFilePath", this.tweetCacheFilePath);
             if (fs.existsSync(this.tweetCacheFilePath)) {
                 // make it?
                 const data = fs.readFileSync(this.tweetCacheFilePath, "utf-8");
                 this.lastCheckedTweetId = parseInt(data.trim());
             } else {
-                // console.warn("Tweet cache file not found.");
-                // console.warn(this.tweetCacheFilePath);
+                // elizaLogger.warn("Tweet cache file not found.");
+                // elizaLogger.warn(this.tweetCacheFilePath);
             }
         } catch (error) {
-            console.error(
+            elizaLogger.error(
                 "Error loading latest checked tweet ID from file:",
                 error
             );
@@ -228,10 +228,10 @@ export class ClientBase extends EventEmitter {
             let loggedInWaits = 0;
 
             while (!(await this.twitterClient.isLoggedIn())) {
-                console.log("Waiting for Twitter login");
+                elizaLogger.log("Waiting for Twitter login");
                 await new Promise((resolve) => setTimeout(resolve, 2000));
                 if (loggedInWaits > 10) {
-                    console.error("Failed to login to Twitter");
+                    elizaLogger.error("Failed to login to Twitter");
                     await this.twitterClient.login(
                         this.runtime.getSetting("TWITTER_USERNAME"),
                         this.runtime.getSetting("TWITTER_PASSWORD"),
@@ -257,12 +257,12 @@ export class ClientBase extends EventEmitter {
                         this.runtime.getSetting("TWITTER_USERNAME")
                     );
                 } catch (error) {
-                    console.error("Error getting user ID:", error);
+                    elizaLogger.error("Error getting user ID:", error);
                     return null;
                 }
             });
             if (!userId) {
-                console.error("Failed to get user ID");
+                elizaLogger.error("Failed to get user ID");
                 return;
             }
             elizaLogger.log("Twitter user ID:", userId);
@@ -271,7 +271,7 @@ export class ClientBase extends EventEmitter {
             // Initialize Twitter profile
             const profile = await this.initializeProfile();
             if (profile) {
-                // console.log("Twitter profile initialized:", profile);
+                // elizaLogger.log("Twitter profile initialized:", profile);
 
                 // Store profile info for use in responses
                 this.runtime.character = {
@@ -300,7 +300,7 @@ export class ClientBase extends EventEmitter {
         return homeTimeline
             .filter((t) => t.__typename !== "TweetWithVisibilityResults")
             .map((tweet) => {
-                console.log("tweet is", tweet);
+                elizaLogger.log("tweet is", tweet);
                 const obj = {
                     id: tweet.rest_id,
                     name:
@@ -337,7 +337,7 @@ export class ClientBase extends EventEmitter {
                         [],
                 };
 
-                console.log("obj is", obj);
+                elizaLogger.log("obj is", obj);
 
                 return obj;
             });
@@ -371,11 +371,11 @@ export class ClientBase extends EventEmitter {
                 );
                 return (result ?? { tweets: [] }) as QueryTweetsResponse;
             } catch (error) {
-                console.error("Error fetching search tweets:", error);
+                elizaLogger.error("Error fetching search tweets:", error);
                 return { tweets: [] };
             }
         } catch (error) {
-            console.error("Error fetching search tweets:", error);
+            elizaLogger.error("Error fetching search tweets:", error);
             return { tweets: [] };
         }
     }
@@ -386,12 +386,9 @@ export class ClientBase extends EventEmitter {
         // Check if the cache file exists
         if (fs.existsSync(cacheFile)) {
             // Read the cached search results from the file
-            console.log("Loading tweets from cache");
-            console.log(cacheFile);
             const cachedResults = JSON.parse(
                 fs.readFileSync(cacheFile, "utf-8")
             );
-            console.log("cachedResults", cachedResults);
 
             // Get the existing memories from the database
             const existingMemories =
@@ -577,7 +574,6 @@ export class ClientBase extends EventEmitter {
     }
 
     async setCookiesFromArray(cookiesArray: any[]) {
-        console.log("cookiesArray", cookiesArray);
         const cookieStrings = cookiesArray.map(
             (cookie) =>
                 `${cookie.key}=${cookie.value}; Domain=${cookie.domain}; Path=${cookie.path}; ${
@@ -586,7 +582,6 @@ export class ClientBase extends EventEmitter {
                     cookie.sameSite || "Lax"
                 }`
         );
-        console.log("cookieStrings", cookieStrings);
         await this.twitterClient.setCookies(cookieStrings);
     }
 
@@ -605,7 +600,7 @@ export class ClientBase extends EventEmitter {
                 recentMessage.length > 0 &&
                 recentMessage[0].content === message.content
             ) {
-                console.log("Message already saved", recentMessage[0].id);
+                elizaLogger.log("Message already saved", recentMessage[0].id);
             } else {
                 await this.runtime.messageManager.createMemory({
                     ...message,
@@ -623,7 +618,7 @@ export class ClientBase extends EventEmitter {
     async initializeProfile() {
         const username = this.runtime.getSetting("TWITTER_USERNAME");
         if (!username) {
-            console.error("Twitter username not configured");
+            elizaLogger.error("Twitter username not configured");
             return;
         }
 
@@ -647,7 +642,7 @@ export class ClientBase extends EventEmitter {
 
             return profile;
         } catch (error) {
-            console.error("Error fetching Twitter profile:", error);
+            elizaLogger.error("Error fetching Twitter profile:", error);
             return {
                 username: this.runtime.character.name,
                 screenName: username,
