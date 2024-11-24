@@ -423,10 +423,10 @@ export async function generateShouldRespond({
     let retryDelay = 1000;
     while (true) {
         try {
-            elizaLogger.debug(
-                "Attempting to generate text with context:",
-                context
-            );
+            // elizaLogger.debug(
+            //     "Attempting to generate text with context:",
+            //     context
+            // );
             const response = await generateText({
                 runtime,
                 context,

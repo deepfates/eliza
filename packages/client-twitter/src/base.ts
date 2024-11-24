@@ -265,7 +265,7 @@ export class ClientBase extends EventEmitter {
                 elizaLogger.error("Failed to get user ID");
                 return;
             }
-            elizaLogger.log("Twitter user ID:", userId);
+            // elizaLogger.log("Twitter user ID:", userId);
             this.twitterUserId = userId;
 
             // Initialize Twitter profile
@@ -300,7 +300,7 @@ export class ClientBase extends EventEmitter {
         return homeTimeline
             .filter((t) => t.__typename !== "TweetWithVisibilityResults")
             .map((tweet) => {
-                elizaLogger.log("tweet is", tweet);
+                // elizaLogger.log("tweet is", tweet);
                 const obj = {
                     id: tweet.rest_id,
                     name:
@@ -337,7 +337,7 @@ export class ClientBase extends EventEmitter {
                         [],
                 };
 
-                elizaLogger.log("obj is", obj);
+                // elizaLogger.log("obj is", obj);
 
                 return obj;
             });
@@ -600,7 +600,7 @@ export class ClientBase extends EventEmitter {
                 recentMessage.length > 0 &&
                 recentMessage[0].content === message.content
             ) {
-                elizaLogger.log("Message already saved", recentMessage[0].id);
+                // elizaLogger.log("Message already saved", recentMessage[0].id);
             } else {
                 await this.runtime.messageManager.createMemory({
                     ...message,
