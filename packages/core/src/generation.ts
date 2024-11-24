@@ -472,10 +472,10 @@ export async function generateTweetActions({
 
     while (true) {
         try {
-            console.debug(
-                "Attempting to generate text with context for tweet actions:",
-                context
-            );
+            // elizaLogger.debug(
+            //     "Attempting to generate text with context for tweet actions:",
+            //     context
+            // );
 
             const response = await generateText({
                 runtime,
@@ -483,14 +483,14 @@ export async function generateTweetActions({
                 modelClass,
             });
 
-            console.debug(
-                "Received response from generateText for tweet actions:",
-                response
-            );
+            // elizaLogger.debug(
+            //     "Received response from generateText for tweet actions:",
+            //     response
+            // );
             const { actions } = parseActionResponseFromText(response.trim());
 
             if (actions) {
-                console.debug("Parsed tweet actions:", actions);
+                // elizaLogger.debug("Parsed tweet actions:", actions);
                 return actions;
             } else {
                 elizaLogger.debug("generateTweetActions no valid response");
