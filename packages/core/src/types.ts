@@ -689,3 +689,21 @@ export enum LoggingLevel {
     VERBOSE = "verbose",
     NONE = "none",
 }
+
+export interface TweetAction {
+    like: boolean;
+    retweet: boolean;
+    quote?: boolean;
+    reply?: boolean;
+}
+
+export interface TweetResponse {
+    actions: TweetAction;
+}
+
+export interface ActionResponse {
+    like: boolean;
+    retweet: boolean;
+    quote?: boolean;
+    reply?: boolean;
+}

@@ -1,6 +1,6 @@
 // utils.ts
 
-import { Tweet } from "agent-twitter-client";
+import { Tweet } from "goat-x";
 import { embeddingZeroVector } from "@ai16z/eliza";
 import { Content, Memory, UUID } from "@ai16z/eliza";
 import { stringToUuid } from "@ai16z/eliza";
@@ -9,10 +9,15 @@ import { elizaLogger } from "@ai16z/eliza";
 
 const MAX_TWEET_LENGTH = 280; // Updated to Twitter's current character limit
 
-export const wait = (minTime: number = 1000, maxTime: number = 3000) => {
-    const waitTime =
-        Math.floor(Math.random() * (maxTime - minTime + 1)) + minTime;
-    return new Promise((resolve) => setTimeout(resolve, waitTime));
+export const wait = (
+    minTime: number = 1000,
+    maxTime: number = 3000
+): Promise<void> => {
+    return new Promise((resolve) => {
+        const waitTime =
+            Math.floor(Math.random() * (maxTime - minTime + 1)) + minTime;
+        setTimeout(resolve, waitTime);
+    });
 };
 
 export const isValidTweet = (tweet: Tweet): boolean => {
@@ -167,36 +172,40 @@ export async function buildConversationThread(
 
 export async function sendTweet(
     client: ClientBase,
-    content: Content,
+    response: Content,
     roomId: UUID,
     twitterUsername: string,
-    inReplyTo: string
+    replyToId?: string
 ): Promise<Memory[]> {
-    const tweetChunks = splitTweetContent(content.text);
-    const sentTweets: Tweet[] = [];
-    let previousTweetId = inReplyTo;
-
-    for (const chunk of tweetChunks) {
-        const result = await client.requestQueue.add(
-            async () =>
-                await client.twitterClient.sendTweet(
-                    chunk.trim(),
-                    previousTweetId
-                )
+    try {
+        const result = await client.twitterClient.sendTweet(
+            response.text,
+            replyToId
         );
-        // Parse the response
+
+        // Add proper response validation
         const body = await result.json();
-        const tweetResult = body.data.create_tweet.tweet_results.result;
+
+        if (!body?.data?.create_tweet?.tweet_results?.result) {
+            elizaLogger.error("Invalid tweet response structure:", body);
+            throw new Error("Invalid tweet response structure");
+        }
 
         const finalTweet: Tweet = {
-            id: tweetResult.rest_id,
-            text: tweetResult.legacy.full_text,
-            conversationId: tweetResult.legacy.conversation_id_str,
+            id: body.data.create_tweet.tweet_results.result.rest_id,
+            text: body.data.create_tweet.tweet_results.result.legacy.full_text,
+            conversationId:
+                body.data.create_tweet.tweet_results.result.legacy
+                    .conversation_id_str,
             //createdAt:
-            timestamp: tweetResult.timestamp * 1000,
-            userId: tweetResult.legacy.user_id_str,
-            inReplyToStatusId: tweetResult.legacy.in_reply_to_status_id_str,
-            permanentUrl: `https://twitter.com/${twitterUsername}/status/${tweetResult.rest_id}`,
+            timestamp:
+                body.data.create_tweet.tweet_results.result.timestamp * 1000,
+            userId: body.data.create_tweet.tweet_results.result.legacy
+                .user_id_str,
+            inReplyToStatusId:
+                body.data.create_tweet.tweet_results.result.legacy
+                    .in_reply_to_status_id_str,
+            permanentUrl: `https://twitter.com/${twitterUsername}/status/${body.data.create_tweet.tweet_results.result.rest_id}`,
             hashtags: [],
             mentions: [],
             photos: [],
@@ -205,33 +214,34 @@ export async function sendTweet(
             videos: [],
         };
 
-        sentTweets.push(finalTweet);
-        previousTweetId = finalTweet.id;
+        const memories: Memory[] = [
+            {
+                id: stringToUuid(finalTweet.id + "-" + client.runtime.agentId),
+                agentId: client.runtime.agentId,
+                userId: client.runtime.agentId,
+                content: {
+                    text: finalTweet.text,
+                    source: "twitter",
+                    url: finalTweet.permanentUrl,
+                    inReplyTo: finalTweet.inReplyToStatusId
+                        ? stringToUuid(
+                              finalTweet.inReplyToStatusId +
+                                  "-" +
+                                  client.runtime.agentId
+                          )
+                        : undefined,
+                },
+                roomId,
+                embedding: embeddingZeroVector,
+                createdAt: finalTweet.timestamp * 1000,
+            },
+        ];
 
-        // Wait a bit between tweets to avoid rate limiting issues
-        await wait(1000, 2000);
+        return memories;
+    } catch (error) {
+        elizaLogger.error("Error in sendTweet:", error);
+        throw error; // Re-throw to be handled by caller
     }
-
-    const memories: Memory[] = sentTweets.map((tweet) => ({
-        id: stringToUuid(tweet.id + "-" + client.runtime.agentId),
-        agentId: client.runtime.agentId,
-        userId: client.runtime.agentId,
-        content: {
-            text: tweet.text,
-            source: "twitter",
-            url: tweet.permanentUrl,
-            inReplyTo: tweet.inReplyToStatusId
-                ? stringToUuid(
-                      tweet.inReplyToStatusId + "-" + client.runtime.agentId
-                  )
-                : undefined,
-        },
-        roomId,
-        embedding: embeddingZeroVector,
-        createdAt: tweet.timestamp * 1000,
-    }));
-
-    return memories;
 }
 
 function splitTweetContent(content: string): string[] {
