@@ -212,6 +212,15 @@ export class TwitterPostClient extends ClientBase {
                     async () => await this.twitterClient.sendTweet(content)
                 );
                 const body = await result.json();
+                
+                if (!body?.data?.create_tweet?.tweet_results?.result) {
+                    elizaLogger.error(
+                        "Invalid tweet response structure:",
+                        body
+                    );
+                    return;
+                }
+                
                 const tweetResult = body.data.create_tweet.tweet_results.result;
 
                 const tweet = {
@@ -258,16 +267,16 @@ export class TwitterPostClient extends ClientBase {
                     createdAt: tweet.timestamp * 1000,
                 });
             } catch (error) {
-                console.error("Error sending tweet:", error);
+                elizaLogger.error("Error sending tweet:", error);
             }
         } catch (error) {
-            console.error("Error generating new tweet:", error);
+            elizaLogger.error("Error generating new tweet:", error);
         }
     }
 
     async processTweetActions() {
         try {
-            console.log("Generating new advanced tweet posts");
+            elizaLogger.log("Generating new advanced tweet posts");
 
             await this.runtime.ensureUserExists(
                 this.runtime.agentId,
@@ -288,7 +297,7 @@ export class TwitterPostClient extends ClientBase {
             // Process each tweet in the timeline
             for (const tweet of homeTimeline) {
                 try {
-                    console.log(`Processing tweet ID: ${tweet.id}`);
+                    elizaLogger.log(`Processing tweet ID: ${tweet.id}`);
 
                     // Handle memory storage / checking if the tweet has already been posted / interacted with
                     const memory =
@@ -297,24 +306,26 @@ export class TwitterPostClient extends ClientBase {
                         );
 
                     if (memory) {
-                        console.log(
+                        elizaLogger.log(
                             `Post interacted with this tweet ID already: ${tweet.id}`
                         );
                         continue;
                     } else {
-                        console.log(`new tweet to interact with: ${tweet.id}`);
+                        elizaLogger.log(
+                            `new tweet to interact with: ${tweet.id}`
+                        );
 
-                        console.log(`Saving incoming tweet to memory...`);
+                        elizaLogger.log(`Saving incoming tweet to memory...`);
 
                         const saveToMemory =
                             await this.saveIncomingTweetToMemory(tweet);
                         if (!saveToMemory) {
-                            console.log(
+                            elizaLogger.log(
                                 `Skipping tweet ${tweet.id} due to save failure`
                             );
                             continue;
                         }
-                        console.log(
+                        elizaLogger.log(
                             `Incoming Tweet ${tweet.id} saved to memory`
                         );
                     }
@@ -355,7 +366,7 @@ export class TwitterPostClient extends ClientBase {
                     });
 
                     if (!actionResponse) {
-                        console.log(
+                        elizaLogger.log(
                             `No valid actions generated for tweet ${tweet.id}`
                         );
                         continue;
@@ -370,12 +381,12 @@ export class TwitterPostClient extends ClientBase {
                             // const likeResponse =
                             try {
                                 await this.twitterClient.likeTweet(tweet.id);
-                                console.log(
+                                elizaLogger.log(
                                     `Successfully liked tweet ${tweet.id}`
                                 );
                                 executedActions.push("like");
                             } catch (error) {
-                                console.error(
+                                elizaLogger.error(
                                     `Error liking tweet ${tweet.id}:`,
                                     error
                                 );
@@ -385,13 +396,13 @@ export class TwitterPostClient extends ClientBase {
 
                             // Check if like was successful
                             // if (likeResponse.status === 200 && likeData?.data?.favorite_tweet) {
-                            //     console.log(`Successfully liked tweet ${tweet.id}`);
+                            //     elizaLogger.log(`Successfully liked tweet ${tweet.id}`);
                             //     executedActions.push('like');
                             // } else {
-                            //     console.error(`Failed to like tweet ${tweet.id}`, likeData);
+                            //     elizaLogger.error(`Failed to like tweet ${tweet.id}`, likeData);
 
                             //     if (likeData?.errors) {
-                            //         console.error('Like errors:', likeData.errors);
+                            //         elizaLogger.error('Like errors:', likeData.errors);
                             //         executedActions.push('like');
                             //     }
                             // }
@@ -403,7 +414,7 @@ export class TwitterPostClient extends ClientBase {
                                 // const retweetResponse =
                                 await this.twitterClient.retweet(tweet.id);
                                 executedActions.push("retweet");
-                                console.log(
+                                elizaLogger.log(
                                     `Successfully retweeted tweet ${tweet.id}`
                                 );
                                 // Check if response is ok and parse response
@@ -411,15 +422,15 @@ export class TwitterPostClient extends ClientBase {
                                 //         const retweetData = await retweetResponse.json();
                                 //         if (retweetData) { // if we got valid data back
                                 //             executedActions.push('retweet');
-                                //             console.log(`Successfully retweeted tweet ${tweet.id}`);
+                                //             elizaLogger.log(`Successfully retweeted tweet ${tweet.id}`);
                                 //         } else {
-                                //             console.error(`Retweet response invalid for tweet ${tweet.id}`, retweetData);
+                                //             elizaLogger.error(`Retweet response invalid for tweet ${tweet.id}`, retweetData);
                                 //         }
                                 //     } else {
-                                //         console.error(`Retweet failed with status ${retweetResponse.status} for tweet ${tweet.id}`);
+                                //         elizaLogger.error(`Retweet failed with status ${retweetResponse.status} for tweet ${tweet.id}`);
                                 //     }
                             } catch (error) {
-                                console.error(
+                                elizaLogger.error(
                                     `Error retweeting tweet ${tweet.id}:`,
                                     error
                                 );
@@ -433,12 +444,12 @@ export class TwitterPostClient extends ClientBase {
                             try {
                                 tweetContent =
                                     await this.generateTweetContent(tweetState);
-                                console.log(
+                                elizaLogger.log(
                                     "Generated tweet content:",
                                     tweetContent
                                 );
                             } catch (error) {
-                                console.error(
+                                elizaLogger.error(
                                     "Failed to generate tweet content:",
                                     error
                                 );
@@ -462,17 +473,17 @@ export class TwitterPostClient extends ClientBase {
                                         executedActions.push("quote");
                                     }
                                 } else {
-                                    console.error(
+                                    elizaLogger.error(
                                         `Quote tweet failed with status ${quoteResponse.status} for tweet ${tweet.id}`
                                     );
                                 }
                             } catch (error) {
-                                console.error(
+                                elizaLogger.error(
                                     `Error quote tweeting ${tweet.id}:`,
                                     error
                                 );
                                 // Log the attempted quote text for debugging
-                                console.error(
+                                elizaLogger.error(
                                     "Attempted quote text:",
                                     actionResponse.quote
                                 );
@@ -482,7 +493,7 @@ export class TwitterPostClient extends ClientBase {
 
                         // Reply action
                         if (actionResponse.reply) {
-                            console.log("text reply only started...");
+                            elizaLogger.log("text reply only started...");
                             await this.handleTextOnlyReply(
                                 tweet,
                                 tweetState,
@@ -490,7 +501,7 @@ export class TwitterPostClient extends ClientBase {
                             );
                         }
 
-                        console.log(
+                        elizaLogger.log(
                             `Executed actions for tweet ${tweet.id}:`,
                             executedActions
                         );
@@ -502,21 +513,24 @@ export class TwitterPostClient extends ClientBase {
                             executedActions,
                         });
                     } catch (error) {
-                        console.error(
+                        elizaLogger.error(
                             `Error executing actions for tweet ${tweet.id}:`,
                             error
                         );
                         continue;
                     }
                 } catch (error) {
-                    console.error(`Error processing tweet ${tweet.id}:`, error);
+                    elizaLogger.error(
+                        `Error processing tweet ${tweet.id}:`,
+                        error
+                    );
                     continue;
                 }
             }
 
             return results;
         } catch (error) {
-            console.error("Error in processTweetActions:", error);
+            elizaLogger.error("Error in processTweetActions:", error);
             throw error;
         }
     }
@@ -531,7 +545,7 @@ export class TwitterPostClient extends ClientBase {
                 template: twitterPostTemplate,
             });
 
-            console.log(`Beginning to generate new tweet with model`);
+            elizaLogger.log(`Beginning to generate new tweet with model`);
             const newTweetContent = await generateText({
                 runtime: this.runtime,
                 context,
@@ -539,7 +553,7 @@ export class TwitterPostClient extends ClientBase {
             });
 
             const slice = newTweetContent.replaceAll(/\\n/g, "\n").trim();
-            console.log(`New Tweet Post Content with model: ${slice}`);
+            elizaLogger.log(`New Tweet Post Content with model: ${slice}`);
 
             const contentLength = 240;
 
@@ -562,7 +576,7 @@ export class TwitterPostClient extends ClientBase {
 
             return content;
         } catch (error) {
-            console.error("Error generating tweet content:", error);
+            elizaLogger.error("Error generating tweet content:", error);
             throw error;
         }
     }
@@ -574,9 +588,9 @@ export class TwitterPostClient extends ClientBase {
     ) {
         try {
             const body = await response.json();
-            console.log("Body tweet result: ", body);
+            // elizaLogger.log("Body tweet result: ", body);
             const tweetResult = body.data.create_tweet.tweet_results.result;
-            console.log("tweetResult", tweetResult);
+            elizaLogger.log("tweetResult", tweetResult);
 
             const newTweet = {
                 id: tweetResult.rest_id,
@@ -628,7 +642,7 @@ export class TwitterPostClient extends ClientBase {
                 actionType,
             };
         } catch (error) {
-            console.error(
+            elizaLogger.error(
                 `Error processing ${actionType} tweet response:`,
                 error
             );
@@ -647,30 +661,32 @@ export class TwitterPostClient extends ClientBase {
     ) {
         try {
             const tweetContent = await this.generateTweetContent(tweetState);
-            console.log("Generated text only tweet content:", tweetContent);
+            elizaLogger.log("Generated text only tweet content:", tweetContent);
 
             const tweetResponse = await this.twitterClient.sendTweet(
                 tweetContent,
                 tweet.id
             );
             if (tweetResponse.status === 200) {
-                console.log("Successfully tweeted with reply to timeline post");
+                elizaLogger.log(
+                    "Successfully tweeted with reply to timeline post"
+                );
                 const result = await this.processTweetResponse(
                     tweetResponse,
                     tweetContent,
                     "reply"
                 );
                 if (result.success) {
-                    console.log(
+                    elizaLogger.log(
                         `Reply generated for timeline tweet: ${result.tweet.id}`
                     );
                     executedActions.push("reply");
                 }
             } else {
-                console.error("Tweet creation failed (reply)");
+                elizaLogger.error("Tweet creation failed (reply)");
             }
         } catch (error) {
-            console.error(
+            elizaLogger.error(
                 "Failed to generate tweet content for timeline reply:",
                 error
             );
@@ -707,10 +723,13 @@ export class TwitterPostClient extends ClientBase {
                 createdAt: tweet.timestamp * 1000,
             });
 
-            console.log(`Saved tweet ${postId} to memory`);
+            elizaLogger.log(`Saved tweet ${postId} to memory`);
             return true;
         } catch (error) {
-            console.error(`Error saving tweet ${tweet.id} to memory:`, error);
+            elizaLogger.error(
+                `Error saving tweet ${tweet.id} to memory:`,
+                error
+            );
             return false;
         }
     }
