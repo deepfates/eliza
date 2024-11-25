@@ -30,6 +30,7 @@ content_cache/
 test_data/
 tokencache/
 tweetcache/
+bskycache/
 twitter_cookies.json
 timeline_cache.json
 

@@ -33,6 +33,7 @@ PACKAGES=(
     "client-discord"
     "client-telegram"
     "client-twitter"
+    "client-bluesky"
     "plugin-node"
     "plugin-bootstrap"
     "plugin-image-generation"

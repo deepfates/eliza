@@ -5,6 +5,7 @@ import { DiscordClientInterface } from "@ai16z/client-discord";
 import { AutoClientInterface } from "@ai16z/client-auto";
 import { TelegramClientInterface } from "@ai16z/client-telegram";
 import { TwitterClientInterface } from "@ai16z/client-twitter";
+import { BlueskyClientInterface } from "@ai16z/client-bluesky";
 import {
     defaultCharacter,
     AgentRuntime,
@@ -193,6 +194,11 @@ export async function initializeClients(
     if (clientTypes.includes("twitter")) {
         const twitterClients = await TwitterClientInterface.start(runtime);
         clients.push(twitterClients);
+    }
+
+    if (clientTypes.includes("bluesky")) {
+        const blueskyClient = await BlueskyClientInterface.start(runtime);
+        if (blueskyClient) clients.push(blueskyClient);
     }
 
     if (character.plugins?.length > 0) {
