@@ -19,6 +19,7 @@
         "@ai16z/client-discord": "workspace:*",
         "@ai16z/client-telegram": "workspace:*",
         "@ai16z/client-twitter": "workspace:*",
+        "@ai16z/client-bluesky": "workspace:*",
         "@ai16z/eliza": "workspace:*",
         "@ai16z/plugin-bootstrap": "workspace:*",
         "@ai16z/plugin-image-generation": "workspace:*",

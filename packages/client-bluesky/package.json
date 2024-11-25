@@ -1,0 +1,23 @@
+{
+  "name": "@ai16z/client-bluesky",
+    "version": "0.0.1",
+    "main": "dist/index.js",
+    "type": "module",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsup --format esm --dts",
+        "dev": "tsup --watch"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+      "@ai16z/eliza": "workspace:*",
+      "@atproto/api": "^0.13.16",
+      "typescript": "5.6.3"
+    },
+    "devDependencies": {
+      "ts-node": "10.9.2",
+      "tsup": "^8.3.5"
+    }
+}

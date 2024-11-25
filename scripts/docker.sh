@@ -35,6 +35,7 @@ case "$1" in
             "adapter-supabase"
             "agent"
             "client-auto"
+            "client-bluesky"
             "client-direct"
             "client-discord"
             "client-telegram"
