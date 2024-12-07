@@ -12,4 +12,4 @@ Validation function
 
 ## Defined in
 
-[packages/core/src/environment.ts:26](https://github.com/monilpat/eliza/blob/main/packages/core/src/environment.ts#L26)
+[packages/core/src/environment.ts:26](https://github.com/deepfates/eliza/blob/main/packages/core/src/environment.ts#L26)

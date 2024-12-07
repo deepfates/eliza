@@ -20,4 +20,4 @@ Configuration options specific to the provider.
 
 ## Defined in
 
-[packages/core/src/generation.ts:1173](https://github.com/monilpat/eliza/blob/main/packages/core/src/generation.ts#L1173)
+[packages/core/src/generation.ts:1229](https://github.com/deepfates/eliza/blob/main/packages/core/src/generation.ts#L1229)

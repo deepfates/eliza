@@ -53,6 +53,9 @@
 - [IBrowserService](interfaces/IBrowserService.md)
 - [ISpeechService](interfaces/ISpeechService.md)
 - [IPdfService](interfaces/IPdfService.md)
+- [TweetAction](interfaces/TweetAction.md)
+- [TweetResponse](interfaces/TweetResponse.md)
+- [ActionResponse](interfaces/ActionResponse.md)
 
 ## Type Aliases
 
@@ -86,6 +89,7 @@
 - [shouldRespondFooter](variables/shouldRespondFooter.md)
 - [booleanFooter](variables/booleanFooter.md)
 - [stringArrayFooter](variables/stringArrayFooter.md)
+- [postActionResponseFooter](variables/postActionResponseFooter.md)
 - [settings](variables/settings.md)
 
 ## Functions
@@ -108,6 +112,7 @@
 - [generateText](functions/generateText.md)
 - [trimTokens](functions/trimTokens.md)
 - [generateShouldRespond](functions/generateShouldRespond.md)
+- [generateTweetActions](functions/generateTweetActions.md)
 - [splitChunks](functions/splitChunks.md)
 - [generateTrueOrFalse](functions/generateTrueOrFalse.md)
 - [generateTextArray](functions/generateTextArray.md)
@@ -131,6 +136,7 @@
 - [getEndpoint](functions/getEndpoint.md)
 - [parseShouldRespondFromText](functions/parseShouldRespondFromText.md)
 - [parseBooleanFromText](functions/parseBooleanFromText.md)
+- [parseActionResponseFromText](functions/parseActionResponseFromText.md)
 - [parseJsonArrayFromText](functions/parseJsonArrayFromText.md)
 - [parseJSONObjectFromText](functions/parseJSONObjectFromText.md)
 - [formatPosts](functions/formatPosts.md)
