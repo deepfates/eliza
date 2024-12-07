@@ -13,7 +13,7 @@ import {
     State,
 } from "@ai16z/eliza";
 import { stringToUuid } from "@ai16z/eliza";
-import { ClientBase } from "./base.ts";
+import { ClientBase } from "./base";
 import { buildConversationThread, sendTweet, wait } from "./utils.ts";
 
 const twitterSearchTemplate =
@@ -72,9 +72,6 @@ export class TwitterSearchClient extends ClientBase {
                 Math.floor(Math.random() * this.runtime.character.topics.length)
             ];
 
-            if (!fs.existsSync("tweetcache")) {
-                fs.mkdirSync("tweetcache");
-            }
             console.log("Fetching search tweets");
             // TODO: we wait 5 seconds here to avoid getting rate limited on startup, but we should queue
             await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -86,10 +83,8 @@ export class TwitterSearchClient extends ClientBase {
             console.log("Search tweets fetched");
 
             const homeTimeline = await this.fetchHomeTimeline(50);
-            fs.writeFileSync(
-                "tweetcache/home_timeline.json",
-                JSON.stringify(homeTimeline, null, 2)
-            );
+
+            await this.cacheTimeline(homeTimeline);
 
             const formattedHomeTimeline =
                 `# ${this.runtime.character.name}'s Home Timeline\n\n` +
@@ -114,7 +109,7 @@ export class TwitterSearchClient extends ClientBase {
 
             const prompt = `
   Here are some tweets related to the search term "${searchTerm}":
-  
+
   ${[...slicedTweets, ...homeTimeline]
       .filter((tweet) => {
           // ignore tweets where any of the thread tweets contain a tweet by the bot
@@ -132,7 +127,7 @@ export class TwitterSearchClient extends ClientBase {
   `
       )
       .join("\n")}
-  
+
   Which tweet is the most interesting and relevant for Ruby to reply to? Please provide only the ID of the tweet in your response.
   Notes:
     - Respond to English tweets only
@@ -247,7 +242,7 @@ export class TwitterSearchClient extends ClientBase {
                 twitterUserName: this.runtime.getSetting("TWITTER_USERNAME"),
                 timeline: formattedHomeTimeline,
                 tweetContext: `${tweetBackground}
-  
+
   Original Post:
   By @${selectedTweet.username}
   ${selectedTweet.text}${replyContext.length > 0 && `\nReplies to original post:\n${replyContext}`}
@@ -319,9 +314,12 @@ export class TwitterSearchClient extends ClientBase {
 
                 this.respondedTweets.add(selectedTweet.id);
                 const responseInfo = `Context:\n\n${context}\n\nSelected Post: ${selectedTweet.id} - ${selectedTweet.username}: ${selectedTweet.text}\nAgent's Output:\n${response.text}`;
-                const debugFileName = `tweetcache/tweet_generation_${selectedTweet.id}.txt`;
 
-                fs.writeFileSync(debugFileName, responseInfo);
+                await this.runtime.cacheManager.set(
+                    `twitter/tweet_generation_${selectedTweet.id}.txt`,
+                    responseInfo
+                );
+
                 await wait();
             } catch (error) {
                 console.error(`Error sending response post: ${error}`);

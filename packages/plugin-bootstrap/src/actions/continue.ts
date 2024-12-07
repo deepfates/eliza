@@ -61,7 +61,6 @@ export const continueAction: Action = {
     validate: async (runtime: IAgentRuntime, message: Memory) => {
         const recentMessagesData = await runtime.messageManager.getMemories({
             roomId: message.roomId,
-            agentId: runtime.agentId,
             count: 10,
             unique: false,
         });
@@ -139,7 +138,7 @@ export const continueAction: Action = {
         const response = await generateMessageResponse({
             runtime,
             context,
-            modelClass: ModelClass.SMALL,
+            modelClass: ModelClass.LARGE,
         });
 
         response.inReplyTo = message.id;

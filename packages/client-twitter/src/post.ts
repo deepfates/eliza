@@ -1,34 +1,36 @@
-import { Tweet } from "goat-x";
-import fs from "fs";
-import { composeContext, elizaLogger } from "@ai16z/eliza";
-import { generateText, generateTweetActions } from "@ai16z/eliza";
-import { embeddingZeroVector } from "@ai16z/eliza";
-import { IAgentRuntime, ModelClass } from "@ai16z/eliza";
-import { stringToUuid } from "@ai16z/eliza";
+import { Tweet } from "agent-twitter-client";
+import {
+    composeContext,
+    generateText,
+    generateTweetActions,
+    getEmbeddingZeroVector,
+    IAgentRuntime,
+    ModelClass,
+    stringToUuid,
+    parseBooleanFromText,
+} from "@ai16z/eliza";
+import { elizaLogger } from "@ai16z/eliza";
 import { ClientBase } from "./base.ts";
 import {
     postActionResponseFooter,
     parseActionResponseFromText,
 } from "@ai16z/eliza/src/parsing.ts";
 
-const twitterPostTemplate = `{{timeline}}
-
-# Knowledge
+const twitterPostTemplate = `
+# Areas of Expertise
 {{knowledge}}
 
-About {{agentName}} (@{{twitterUserName}}):
+# About {{agentName}} (@{{twitterUserName}}):
 {{bio}}
 {{lore}}
-{{postDirections}}
+{{topics}}
 
 {{providers}}
 
-{{recentPosts}}
-
 {{characterPostExamples}}
 
-# Task: Generate a post in the voice and style of {{agentName}}, aka @{{twitterUserName}}
-Write a single sentence post that is {{adjective}} about {{topic}} (without mentioning {{topic}} directly), from the perspective of {{agentName}}. Try to write something totally different than previous posts. Do not add commentary or acknowledge this request, just write the post.
+# Task: Generate a post in the voice and style and perspective of {{agentName}}, aka @{{twitterUserName}}
+Write a 1-3 sentence post that is {{adjective}} about {{topic}} (without mentioning {{topic}} directly), from the perspective of {{agentName}}. Try to write something totally different than previous posts. Do not add commentary or acknowledge this request, just write the post.
 Use \\n\\n (double newlines) between statements.`;
 
 const MAX_TWEET_LENGTH = 280;
@@ -96,6 +98,25 @@ Current Tweet:
 export class TwitterPostClient extends ClientBase {
     onReady(postImmediately: boolean = true) {
         const generateNewTweetLoop = () => {
+export class TwitterPostClient {
+    client: ClientBase;
+    runtime: IAgentRuntime;
+
+    async start(postImmediately: boolean = false) {
+        if (!this.client.profile) {
+            await this.client.init();
+        }
+
+        const generateNewTweetLoop = async () => {
+            const lastPost = await this.runtime.cacheManager.get<{
+                timestamp: number;
+            }>(
+                "twitter/" +
+                    this.runtime.getSetting("TWITTER_USERNAME") +
+                    "/lastPost"
+            );
+
+            const lastPostTimestamp = lastPost?.timestamp ?? 0;
             const minMinutes =
                 parseInt(this.runtime.getSetting("POST_INTERVAL_MIN")) || 90;
             const maxMinutes =
@@ -105,84 +126,64 @@ export class TwitterPostClient extends ClientBase {
                 minMinutes;
             const delay = randomMinutes * 60 * 1000;
 
+            if (Date.now() > lastPostTimestamp + delay) {
+                await this.generateNewTweet();
+            }
+
             setTimeout(() => {
-                this.generateNewTweet();
                 generateNewTweetLoop(); // Set up next iteration
             }, delay);
 
             elizaLogger.log(`Next tweet scheduled in ${randomMinutes} minutes`);
         };
-
+        if (
+            this.runtime.getSetting("POST_IMMEDIATELY") != null &&
+            this.runtime.getSetting("POST_IMMEDIATELY") != ""
+        ) {
+            postImmediately = parseBooleanFromText(
+                this.runtime.getSetting("POST_IMMEDIATELY")
+            );
+        }
         if (postImmediately) {
             this.generateNewTweet();
-            setTimeout(
-                generateNewTweetLoop,
-                (Math.floor(Math.random() * (40 - 4 + 1)) + 4) * 60 * 1000
-            ); // Random interval between 4-40 minutes
+            this.processTweetActions();
         }
 
-        const generateNewTimelineTweetLoop = () => {
-            this.processTweetActions();
-            setTimeout(
-                generateNewTimelineTweetLoop,
-                (Math.floor(Math.random() * (60 - 30 + 1)) + 30) * 60 * 1000
-            ); // Random interval between 30-60 minutes
-        };
-
         generateNewTweetLoop();
-        generateNewTimelineTweetLoop();
     }
 
-    constructor(runtime: IAgentRuntime) {
-        super({
-            runtime,
-        });
+    constructor(client: ClientBase, runtime: IAgentRuntime) {
+        this.client = client;
+        this.runtime = runtime;
     }
 
     private async generateNewTweet() {
         elizaLogger.log("Generating new tweet");
+
         try {
+            const roomId = stringToUuid(
+                "twitter_generate_room-" + this.client.profile.username
+            );
             await this.runtime.ensureUserExists(
                 this.runtime.agentId,
-                this.runtime.getSetting("TWITTER_USERNAME"),
+                this.client.profile.username,
                 this.runtime.character.name,
                 "twitter"
             );
 
-            let homeTimeline = [];
-
-            if (!fs.existsSync("tweetcache")) fs.mkdirSync("tweetcache");
-            if (fs.existsSync("tweetcache/home_timeline.json")) {
-                homeTimeline = JSON.parse(
-                    fs.readFileSync("tweetcache/home_timeline.json", "utf-8")
-                );
-            } else {
-                homeTimeline = await this.fetchHomeTimeline(50);
-                fs.writeFileSync(
-                    "tweetcache/home_timeline.json",
-                    JSON.stringify(homeTimeline, null, 2)
-                );
-            }
-
-            const formattedHomeTimeline =
-                `# ${this.runtime.character.name}'s Home Timeline\n\n` +
-                homeTimeline
-                    .map((tweet) => {
-                        return `ID: ${tweet.id}\nFrom: ${tweet.name} (@${tweet.username})${tweet.inReplyToStatusId ? ` In reply to: ${tweet.inReplyToStatusId}` : ""}\nText: ${tweet.text}\n---\n`;
-                    })
-                    .join("\n");
-
+            const topics = this.runtime.character.topics.join(", ");
             const state = await this.runtime.composeState(
                 {
                     userId: this.runtime.agentId,
-                    roomId: stringToUuid("twitter_generate_room"),
+                    roomId: roomId,
                     agentId: this.runtime.agentId,
-                    content: { text: "", action: "" },
+                    content: {
+                        text: topics,
+                        action: "",
+                    },
                 },
                 {
-                    twitterUserName:
-                        this.runtime.getSetting("TWITTER_USERNAME"),
-                    timeline: formattedHomeTimeline,
+                    twitterUserName: this.client.profile.username,
                 }
             );
 
@@ -192,6 +193,8 @@ export class TwitterPostClient extends ClientBase {
                     this.runtime.character.templates?.twitterPostTemplate ||
                     twitterPostTemplate,
             });
+
+            elizaLogger.debug("generate post prompt:\n" + context);
 
             const newTweetContent = await generateText({
                 runtime: this.runtime,
@@ -207,28 +210,38 @@ export class TwitterPostClient extends ClientBase {
             // Use the helper function to truncate to complete sentence
             const content = truncateToCompleteSentence(formattedTweet);
 
+            if (this.runtime.getSetting("TWITTER_DRY_RUN") === "true") {
+                elizaLogger.info(
+                    `Dry run: would have posted tweet: ${content}`
+                );
+                return;
+            }
+
             try {
-                const result = await this.requestQueue.add(
-                    async () => await this.twitterClient.sendTweet(content)
+                elizaLogger.log(`Posting new tweet:\n ${content}`);
+
+                const result = await this.client.requestQueue.add(
+                    async () =>
+                        await this.client.twitterClient.sendTweet(content)
                 );
                 const body = await result.json();
-                
                 if (!body?.data?.create_tweet?.tweet_results?.result) {
-                    elizaLogger.error(
-                        "Invalid tweet response structure:",
-                        body
-                    );
+                    console.error("Error sending tweet; Bad response:", body);
                     return;
                 }
-                
                 const tweetResult = body.data.create_tweet.tweet_results.result;
 
                 const tweet = {
                     id: tweetResult.rest_id,
+                    name: this.client.profile.screenName,
+                    username: this.client.profile.username,
                     text: tweetResult.legacy.full_text,
                     conversationId: tweetResult.legacy.conversation_id_str,
                     createdAt: tweetResult.legacy.created_at,
-                    userId: tweetResult.legacy.user_id_str,
+                    timestamp: new Date(
+                        tweetResult.legacy.created_at
+                    ).getTime(),
+                    userId: this.client.profile.id,
                     inReplyToStatusId:
                         tweetResult.legacy.in_reply_to_status_id_str,
                     permanentUrl: `https://twitter.com/${this.runtime.getSetting("TWITTER_USERNAME")}/status/${tweetResult.rest_id}`,
@@ -240,10 +253,17 @@ export class TwitterPostClient extends ClientBase {
                     videos: [],
                 } as Tweet;
 
-                const postId = tweet.id;
-                const conversationId =
-                    tweet.conversationId + "-" + this.runtime.agentId;
-                const roomId = stringToUuid(conversationId);
+                await this.runtime.cacheManager.set(
+                    `twitter/${this.client.profile.username}/lastPost`,
+                    {
+                        id: tweet.id,
+                        timestamp: Date.now(),
+                    }
+                );
+
+                await this.client.cacheTweet(tweet);
+
+                elizaLogger.log(`Tweet posted:\n ${tweet.permanentUrl}`);
 
                 await this.runtime.ensureRoomExists(roomId);
                 await this.runtime.ensureParticipantInRoom(
@@ -251,10 +271,8 @@ export class TwitterPostClient extends ClientBase {
                     roomId
                 );
 
-                await this.cacheTweet(tweet);
-
                 await this.runtime.messageManager.createMemory({
-                    id: stringToUuid(postId + "-" + this.runtime.agentId),
+                    id: stringToUuid(tweet.id + "-" + this.runtime.agentId),
                     userId: this.runtime.agentId,
                     agentId: this.runtime.agentId,
                     content: {
@@ -263,8 +281,8 @@ export class TwitterPostClient extends ClientBase {
                         source: "twitter",
                     },
                     roomId,
-                    embedding: embeddingZeroVector,
-                    createdAt: tweet.timestamp * 1000,
+                    embedding: getEmbeddingZeroVector(),
+                    createdAt: tweet.timestamp,
                 });
             } catch (error) {
                 elizaLogger.error("Error sending tweet:", error);

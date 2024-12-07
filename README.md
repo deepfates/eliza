@@ -38,10 +38,37 @@
 ### Prerequisites
 
 -   [Python 2.7+](https://www.python.org/downloads/)
--   [Node.js 22+](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
+-   [Node.js 23+](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
 -   [pnpm](https://pnpm.io/installation)
 
 > **Note for Windows Users:** [WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install-manual) is required.
+
+### Use the Starter (Recommended)
+
+```bash
+git clone https://github.com/ai16z/eliza-starter.git
+
+cp .env.example .env
+
+pnpm i && pnpm start
+```
+
+Then read the [Documentation](https://ai16z.github.io/eliza/) to learn how to customize your Eliza.
+
+### Manually Start Eliza (Only recommended if you know what you are doing)
+
+```bash
+# Clone the repository
+git clone https://github.com/ai16z/eliza.git
+
+# Checkout the latest release
+# This project iterates fast, so we recommend checking out the latest release
+git checkout $(git describe --tags --abbrev=0)
+```
+
+### Start Eliza with Gitpod
+
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/ai16z/eliza/tree/main)
 
 ### Edit the .env file
 
@@ -68,6 +95,8 @@ sh scripts/start.sh
 2. To load custom characters:
     - Use `pnpm start --characters="path/to/your/character.json"`
     - Multiple character files can be loaded simultaneously
+3. Connect with X (Twitter)
+    - change `"clients": []` to `"clients": ["twitter"]` in the character file to connect with X
 
 ### Manually Start Eliza
 

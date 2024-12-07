@@ -1,10 +1,8 @@
-// utils.ts
-
 import { Tweet } from "goat-x";
-import { embeddingZeroVector } from "@ai16z/eliza";
+import { getEmbeddingZeroVector } from "@ai16z/eliza";
 import { Content, Memory, UUID } from "@ai16z/eliza";
 import { stringToUuid } from "@ai16z/eliza";
-import { ClientBase } from "./base.ts";
+import { ClientBase } from "./base";
 import { elizaLogger } from "@ai16z/eliza";
 
 const MAX_TWEET_LENGTH = 280; // Updated to Twitter's current character limit
@@ -79,7 +77,7 @@ export async function buildConversationThread(
                 "twitter"
             );
 
-            client.runtime.messageManager.createMemory({
+            await client.runtime.messageManager.createMemory({
                 id: stringToUuid(
                     currentTweet.id + "-" + client.runtime.agentId
                 ),
@@ -99,10 +97,10 @@ export async function buildConversationThread(
                 createdAt: currentTweet.timestamp * 1000,
                 roomId,
                 userId:
-                    currentTweet.userId === client.twitterUserId
+                    currentTweet.userId === client.profile.id
                         ? client.runtime.agentId
                         : stringToUuid(currentTweet.userId),
-                embedding: embeddingZeroVector,
+                embedding: getEmbeddingZeroVector(),
             });
         }
 
@@ -177,65 +175,68 @@ export async function sendTweet(
     twitterUsername: string,
     replyToId?: string
 ): Promise<Memory[]> {
-    try {
-        const result = await client.twitterClient.sendTweet(
-            response.text,
-            replyToId
-        );
+    const tweetChunks = splitTweetContent(content.text);
+    const sentTweets: Tweet[] = [];
+    let previousTweetId = inReplyTo;
 
-        // Add proper response validation
+    for (const chunk of tweetChunks) {
+        const result = await client.requestQueue.add(
+            async () =>
+                await client.twitterClient.sendTweet(
+                    chunk.trim(),
+                    previousTweetId
+                )
+        );
         const body = await result.json();
 
-        if (!body?.data?.create_tweet?.tweet_results?.result) {
-            elizaLogger.error("Invalid tweet response structure:", body);
-            throw new Error("Invalid tweet response structure");
+        // if we have a response
+        if (body?.data?.create_tweet?.tweet_results?.result) {
+            // Parse the response
+            const tweetResult = body.data.create_tweet.tweet_results.result;
+            const finalTweet: Tweet = {
+                id: tweetResult.rest_id,
+                text: tweetResult.legacy.full_text,
+                conversationId: tweetResult.legacy.conversation_id_str,
+                timestamp:
+                    new Date(tweetResult.legacy.created_at).getTime() / 1000,
+                userId: tweetResult.legacy.user_id_str,
+                inReplyToStatusId: tweetResult.legacy.in_reply_to_status_id_str,
+                permanentUrl: `https://twitter.com/${twitterUsername}/status/${tweetResult.rest_id}`,
+                hashtags: [],
+                mentions: [],
+                photos: [],
+                thread: [],
+                urls: [],
+                videos: [],
+            };
+            sentTweets.push(finalTweet);
+            previousTweetId = finalTweet.id;
+        } else {
+            console.error("Error sending chunk", chunk, "repsonse:", body);
         }
 
-        const finalTweet: Tweet = {
-            id: body.data.create_tweet.tweet_results.result.rest_id,
-            text: body.data.create_tweet.tweet_results.result.legacy.full_text,
-            conversationId:
-                body.data.create_tweet.tweet_results.result.legacy
-                    .conversation_id_str,
-            //createdAt:
-            timestamp:
-                body.data.create_tweet.tweet_results.result.timestamp * 1000,
-            userId: body.data.create_tweet.tweet_results.result.legacy
-                .user_id_str,
-            inReplyToStatusId:
-                body.data.create_tweet.tweet_results.result.legacy
-                    .in_reply_to_status_id_str,
-            permanentUrl: `https://twitter.com/${twitterUsername}/status/${body.data.create_tweet.tweet_results.result.rest_id}`,
-            hashtags: [],
-            mentions: [],
-            photos: [],
-            thread: [],
-            urls: [],
-            videos: [],
-        };
+        // Wait a bit between tweets to avoid rate limiting issues
+        await wait(1000, 2000);
+    }
 
-        const memories: Memory[] = [
-            {
-                id: stringToUuid(finalTweet.id + "-" + client.runtime.agentId),
-                agentId: client.runtime.agentId,
-                userId: client.runtime.agentId,
-                content: {
-                    text: finalTweet.text,
-                    source: "twitter",
-                    url: finalTweet.permanentUrl,
-                    inReplyTo: finalTweet.inReplyToStatusId
-                        ? stringToUuid(
-                              finalTweet.inReplyToStatusId +
-                                  "-" +
-                                  client.runtime.agentId
-                          )
-                        : undefined,
-                },
-                roomId,
-                embedding: embeddingZeroVector,
-                createdAt: finalTweet.timestamp * 1000,
-            },
-        ];
+    const memories: Memory[] = sentTweets.map((tweet) => ({
+        id: stringToUuid(tweet.id + "-" + client.runtime.agentId),
+        agentId: client.runtime.agentId,
+        userId: client.runtime.agentId,
+        content: {
+            text: tweet.text,
+            source: "twitter",
+            url: tweet.permanentUrl,
+            inReplyTo: tweet.inReplyToStatusId
+                ? stringToUuid(
+                      tweet.inReplyToStatusId + "-" + client.runtime.agentId
+                  )
+                : undefined,
+        },
+        roomId,
+        embedding: getEmbeddingZeroVector(),
+        createdAt: tweet.timestamp * 1000,
+    }));
 
         return memories;
     } catch (error) {
@@ -282,6 +283,7 @@ function splitTweetContent(content: string): string[] {
 }
 
 function splitParagraph(paragraph: string, maxLength: number): string[] {
+    // eslint-disable-next-line
     const sentences = paragraph.match(/[^\.!\?]+[\.!\?]+|[^\.!\?]+$/g) || [
         paragraph,
     ];

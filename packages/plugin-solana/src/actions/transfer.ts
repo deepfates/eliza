@@ -122,7 +122,7 @@ export default {
         const content = await generateObject({
             runtime,
             context: transferContext,
-            modelClass: ModelClass.SMALL,
+            modelClass: ModelClass.LARGE,
         });
 
         // Validate transfer content
@@ -138,7 +138,9 @@ export default {
         }
 
         try {
-            const privateKeyString = runtime.getSetting("WALLET_PRIVATE_KEY")!;
+            const privateKeyString =
+                runtime.getSetting("SOLANA_PRIVATE_KEY") ??
+                runtime.getSetting("WALLET_PRIVATE_KEY");
             const secretKey = bs58.decode(privateKeyString);
             const senderKeypair = Keypair.fromSecretKey(secretKey);
 

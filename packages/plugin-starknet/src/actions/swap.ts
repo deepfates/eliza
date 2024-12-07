@@ -1,22 +1,23 @@
 import {
+    Action,
     ActionExample,
+    composeContext,
     elizaLogger,
+    generateObject,
     HandlerCallback,
     IAgentRuntime,
     Memory,
     ModelClass,
     State,
-    type Action,
 } from "@ai16z/eliza";
-import { composeContext } from "@ai16z/eliza";
-import { generateObject } from "@ai16z/eliza";
 import {
     executeSwap as executeAvnuSwap,
     fetchQuotes,
     QuoteRequest,
 } from "@avnu/avnu-sdk";
 
-import { getStarknetAccount, validateSettings } from "../utils/index.ts";
+import { getStarknetAccount } from "../utils/index.ts";
+import { validateStarknetConfig } from "../environment.ts";
 
 interface SwapContent {
     sellTokenAddress: string;
@@ -66,7 +67,7 @@ Example response:
 
 Extract the following information about the requested token swap:
 - Sell token address
-- Buy token address  
+- Buy token address
 - Amount to sell (in wei)
 
 Respond with a JSON markdown block containing only the extracted values. Use null for any values that cannot be determined.`;
@@ -79,8 +80,9 @@ export const executeSwap: Action = {
         "STARKNET_TRADE_TOKENS",
         "STARKNET_EXCHANGE_TOKENS",
     ],
-    validate: async (runtime: IAgentRuntime, message: Memory) => {
-        return validateSettings(runtime);
+    validate: async (runtime: IAgentRuntime, _message: Memory) => {
+        await validateStarknetConfig(runtime);
+        return true;
     },
     description:
         "Perform a token swap on starknet. Use this action when a user asks you to swap tokens anything.",
