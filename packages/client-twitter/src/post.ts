@@ -11,10 +11,7 @@ import {
 } from "@ai16z/eliza";
 import { elizaLogger } from "@ai16z/eliza";
 import { ClientBase } from "./base.ts";
-import {
-    postActionResponseFooter,
-    parseActionResponseFromText,
-} from "@ai16z/eliza/src/parsing.ts";
+import { postActionResponseFooter } from "@ai16z/eliza/src/parsing.ts";
 
 const twitterPostTemplate = `
 # Areas of Expertise
@@ -324,7 +321,7 @@ export class TwitterPostClient {
                 "twitter"
             );
 
-            let homeTimeline = await this.client.fetchHomeTimeline(15);
+            const homeTimeline = await this.client.fetchHomeTimeline(15);
 
             const results = [];
 

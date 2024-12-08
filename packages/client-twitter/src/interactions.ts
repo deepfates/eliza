@@ -6,7 +6,6 @@ import {
     messageCompletionFooter,
     shouldRespondFooter,
     Content,
-    HandlerCallback,
     IAgentRuntime,
     Memory,
     ModelClass,
