@@ -1,10 +1,32 @@
 // TODO: Replace with the vercel ai sdk and support all providers
 import { Buffer } from "buffer";
 import Together from "together-ai";
-import { IAgentRuntime } from "@eliza/core";
-import { getImageGenModel, ImageGenModel } from "@eliza/core";
-
+import {
+    IAgentRuntime,
+    IImageDescriptionService,
+    ServiceType,
+} from "@ai16z/eliza";
 import OpenAI from "openai";
+
+export enum ImageGenModel {
+    TogetherAI = "TogetherAI",
+    Dalle = "Dalle",
+}
+
+export const imageGenModels = {
+    [ImageGenModel.TogetherAI]: {
+        steps: 4,
+        subModel: "black-forest-labs/FLUX.1-schnell",
+    },
+    [ImageGenModel.Dalle]: {
+        steps: 0,
+        subModel: "dall-e-3",
+    },
+};
+
+export function getImageGenModel(model: ImageGenModel) {
+    return imageGenModels[model];
+}
 
 export const generateImage = async (
     data: {
@@ -25,8 +47,8 @@ export const generateImage = async (
         count = 1;
     }
 
-    const imageGenModel = runtime.imageGenModel;
-    const model = getImageGenModel(imageGenModel);
+    const imageGenModel = runtime.getSetting("IMAGE_GEN_MODEL");
+    const model = getImageGenModel(imageGenModel as ImageGenModel);
     const apiKey =
         imageGenModel === ImageGenModel.TogetherAI
             ? runtime.getSetting("TOGETHER_API_KEY")
@@ -45,7 +67,7 @@ export const generateImage = async (
             });
             const urls: string[] = [];
             for (let i = 0; i < response.data.length; i++) {
-                //@ts-ignore
+                //@ts-expect-error
                 const url = response.data[i].url;
                 urls.push(url);
             }
@@ -96,7 +118,16 @@ export const generateCaption = async (
     description: string;
 }> => {
     const { imageUrl } = data;
-    const resp = await runtime.imageDescriptionService.describeImage(imageUrl);
+    const imageDescriptionService =
+        runtime.getService<IImageDescriptionService>(
+            ServiceType.IMAGE_DESCRIPTION
+        );
+
+    if (!imageDescriptionService) {
+        throw new Error("Image description service not found");
+    }
+
+    const resp = await imageDescriptionService.describeImage(imageUrl);
     return {
         title: resp.title.trim(),
         description: resp.description.trim(),
