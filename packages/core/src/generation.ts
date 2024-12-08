@@ -27,16 +27,12 @@ import settings from "./settings.ts";
 import {
     Content,
     IAgentRuntime,
-
     IImageDescriptionService,
-
     ITextGenerationService,
-
     ModelClass,
-
     ModelProviderName,
     ServiceType,
-    ActionResponse,,
+    ActionResponse,
     SearchResponse,
 } from "./types.ts";
 import { fal } from "@fal-ai/client";
