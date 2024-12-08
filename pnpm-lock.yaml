@@ -450,13 +450,7 @@ importers:
       '@atproto/api':
         specifier: ^0.13.16
         version: 0.13.19
-      typescript:
-        specifier: 5.6.3
-        version: 5.6.3
     devDependencies:
-      ts-node:
-        specifier: 10.9.2
-        version: 10.9.2(@swc/core@1.10.0(@swc/helpers@0.5.15))(@types/node@22.8.4)(typescript@5.6.3)
       tsup:
         specifier: ^8.3.5
         version: 8.3.5(@swc/core@1.10.0(@swc/helpers@0.5.15))(jiti@2.4.0)(postcss@8.4.49)(typescript@5.6.3)(yaml@2.6.1)
@@ -664,9 +658,6 @@ importers:
       glob:
         specifier: 11.0.0
         version: 11.0.0
-      goat-x:
-        specifier: 1.1.0
-        version: 1.1.0
       js-sha1:
         specifier: 0.7.0
         version: 0.7.0
@@ -9632,9 +9623,6 @@ packages:
   globby@14.0.2:
     resolution: {integrity: sha512-s3Fq41ZVh7vbbe2PN3nrW7yC7U7MFVc5c98/iTl9c2GawNMKx/J648KQRW6WKkuU8GIbbh2IXfIRQjOZnXcTnw==}
     engines: {node: '>=18'}
-
-  goat-x@1.1.0:
-    resolution: {integrity: sha512-0ONySXOcw1fG+wNkqBXjlzP1mAHM0YRQVjCEYIbLzlEwxTxYxMFCBMVcMo+GP+dcN2S4srIiE1tDtGutj9lRFg==}
 
   google-auth-library@9.15.0:
     resolution: {integrity: sha512-7ccSEJFDFO7exFbO6NRyC+xH8/mZ1GZGG2xxx9iHxZWcjUjJpjWxIMw3cofAKcueZ6DATiukmmprD7yavQHOyQ==}
@@ -26066,7 +26054,7 @@ snapshots:
 
   extract-zip@2.0.1:
     dependencies:
-      debug: 4.3.4
+      debug: 4.4.0(supports-color@5.5.0)
       get-stream: 5.2.0
       yauzl: 2.10.0
     optionalDependencies:
@@ -26669,18 +26657,6 @@ snapshots:
       path-type: 5.0.0
       slash: 5.1.0
       unicorn-magic: 0.1.0
-
-  goat-x@1.1.0:
-    dependencies:
-      '@sinclair/typebox': 0.32.35
-      headers-polyfill: 3.3.0
-      json-stable-stringify: 1.1.1
-      node-fetch: 3.3.2
-      otpauth: 9.3.5
-      set-cookie-parser: 2.7.1
-      tough-cookie: 4.1.4
-      tslib: 2.8.1
-      twitter-api-v2: 1.18.2
 
   google-auth-library@9.15.0(encoding@0.1.13):
     dependencies:

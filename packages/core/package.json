@@ -80,7 +80,6 @@
         "ws": "8.18.0",
         "yargs": "17.7.2",
         "youtube-dl-exec": "3.0.10",
-        "goat-x": "1.1.0",
         "zod": "3.23.8"
     },
     "trustedDependencies": {
