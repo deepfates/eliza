@@ -121,8 +121,8 @@ export const models: Models = {
         endpoint: "https://api.together.ai/v1",
         model: {
             [ModelClass.SMALL]: "meta-llama/Llama-3.2-3B-Instruct-Turbo",
-            [ModelClass.MEDIUM]: "meta-llama-3.1-8b-instruct",
-            [ModelClass.LARGE]: "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
+            [ModelClass.MEDIUM]: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+            [ModelClass.LARGE]: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
             [ModelClass.EMBEDDING]:
                 "togethercomputer/m2-bert-80M-32k-retrieval",
             [ModelClass.IMAGE]: "black-forest-labs/FLUX.1-schnell",
@@ -142,8 +142,8 @@ export const models: Models = {
         endpoint: "https://api.together.ai/v1",
         model: {
             [ModelClass.SMALL]: "meta-llama/Llama-3.2-3B-Instruct-Turbo",
-            [ModelClass.MEDIUM]: "meta-llama-3.1-8b-instruct",
-            [ModelClass.LARGE]: "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
+            [ModelClass.MEDIUM]: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+            [ModelClass.LARGE]: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
             [ModelClass.EMBEDDING]:
                 "togethercomputer/m2-bert-80M-32k-retrieval",
             [ModelClass.IMAGE]: "black-forest-labs/FLUX.1-schnell",
@@ -179,16 +179,20 @@ export const models: Models = {
             temperature: 0.7,
         },
         model: {
-            [ModelClass.SMALL]: settings.SMALL_GOOGLE_MODEL ||
+            [ModelClass.SMALL]:
+                settings.SMALL_GOOGLE_MODEL ||
                 settings.GOOGLE_MODEL ||
                 "gemini-1.5-flash-latest",
-            [ModelClass.MEDIUM]: settings.MEDIUM_GOOGLE_MODEL ||
+            [ModelClass.MEDIUM]:
+                settings.MEDIUM_GOOGLE_MODEL ||
                 settings.GOOGLE_MODEL ||
                 "gemini-1.5-flash-latest",
-            [ModelClass.LARGE]: settings.LARGE_GOOGLE_MODEL ||
+            [ModelClass.LARGE]:
+                settings.LARGE_GOOGLE_MODEL ||
                 settings.GOOGLE_MODEL ||
                 "gemini-1.5-pro-latest",
-            [ModelClass.EMBEDDING]: settings.EMBEDDING_GOOGLE_MODEL ||
+            [ModelClass.EMBEDDING]:
+                settings.EMBEDDING_GOOGLE_MODEL ||
                 settings.GOOGLE_MODEL ||
                 "text-embedding-004",
         },
