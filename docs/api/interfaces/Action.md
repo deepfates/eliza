@@ -1,8 +1,8 @@
-[@ai16z/eliza v1.0.0](../index.md) / Action
+[@ai16z/eliza v0.1.5-alpha.3](../index.md) / Action
 
 # Interface: Action
 
-Represents an action that the agent can perform, including conditions for its use, a description, examples, a handler function, and a validation function.
+Represents an action the agent can perform
 
 ## Properties
 
@@ -10,56 +10,68 @@ Represents an action that the agent can perform, including conditions for its us
 
 > **similes**: `string`[]
 
+Similar action descriptions
+
 #### Defined in
 
-[packages/core/src/types.ts:217](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L217)
+[packages/core/src/types.ts:396](https://github.com/deepfates/eliza/blob/main/packages/core/src/types.ts#L396)
 
----
+***
 
 ### description
 
 > **description**: `string`
 
+Detailed description
+
 #### Defined in
 
-[packages/core/src/types.ts:218](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L218)
+[packages/core/src/types.ts:399](https://github.com/deepfates/eliza/blob/main/packages/core/src/types.ts#L399)
 
----
+***
 
 ### examples
 
 > **examples**: [`ActionExample`](ActionExample.md)[][]
 
+Example usages
+
 #### Defined in
 
-[packages/core/src/types.ts:219](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L219)
+[packages/core/src/types.ts:402](https://github.com/deepfates/eliza/blob/main/packages/core/src/types.ts#L402)
 
----
+***
 
 ### handler
 
 > **handler**: [`Handler`](../type-aliases/Handler.md)
 
+Handler function
+
 #### Defined in
 
-[packages/core/src/types.ts:220](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L220)
+[packages/core/src/types.ts:405](https://github.com/deepfates/eliza/blob/main/packages/core/src/types.ts#L405)
 
----
+***
 
 ### name
 
 > **name**: `string`
 
+Action name
+
 #### Defined in
 
-[packages/core/src/types.ts:221](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L221)
+[packages/core/src/types.ts:408](https://github.com/deepfates/eliza/blob/main/packages/core/src/types.ts#L408)
 
----
+***
 
 ### validate
 
 > **validate**: [`Validator`](../type-aliases/Validator.md)
 
+Validation function
+
 #### Defined in
 
-[packages/core/src/types.ts:222](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L222)
+[packages/core/src/types.ts:411](https://github.com/deepfates/eliza/blob/main/packages/core/src/types.ts#L411)

@@ -1,4 +1,4 @@
-[@ai16z/eliza v1.0.0](../index.md) / shouldRespondFooter
+[@ai16z/eliza v0.1.5-alpha.3](../index.md) / shouldRespondFooter
 
 # Variable: shouldRespondFooter
 
@@ -6,4 +6,4 @@
 
 ## Defined in
 
-[packages/core/src/parsing.ts:8](https://github.com/ai16z/eliza/blob/main/packages/core/src/parsing.ts#L8)
+[packages/core/src/parsing.ts:11](https://github.com/deepfates/eliza/blob/main/packages/core/src/parsing.ts#L11)

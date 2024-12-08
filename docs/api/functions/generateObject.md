@@ -1,4 +1,4 @@
-[@ai16z/eliza v1.0.0](../index.md) / generateObject
+[@ai16z/eliza v0.1.5-alpha.3](../index.md) / generateObject
 
 # Function: generateObject()
 
@@ -20,4 +20,4 @@
 
 ## Defined in
 
-[packages/core/src/generation.ts:597](https://github.com/ai16z/eliza/blob/main/packages/core/src/generation.ts#L597)
+[packages/core/src/generation.ts:731](https://github.com/deepfates/eliza/blob/main/packages/core/src/generation.ts#L731)

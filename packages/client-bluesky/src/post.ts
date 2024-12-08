@@ -1,6 +1,6 @@
 import { IAgentRuntime, ModelClass } from "@ai16z/eliza";
-import { embeddingZeroVector } from "@ai16z/eliza/src/memory.ts";
-import { generateText } from "@ai16z/eliza/src/generation.ts";
+import { getEmbeddingZeroVector } from "@ai16z/eliza";
+import { generateText } from "@ai16z/eliza";
 import { ClientBase } from "./base";
 
 import fs from "fs";
@@ -25,7 +25,7 @@ About {{agentName}} (@{{blueskyUserName}}):
 
 # Task: Generate a post in the voice and style of {{agentName}}, aka @{{blueskyUserName}}
 Write a single sentence post that is {{adjective}} about {{topic}} (without mentioning {{topic}} directly), from the perspective of {{agentName}}. Try to write something totally different than previous posts. Do not add commentary or ackwowledge this request, just write the post.
-Use \\n\\n (double newlines) between statements.`;
+Use \n\n (double newlines) between statements.`;
 
 export class BlueskyPostClient extends ClientBase {
     onReady() {
@@ -164,7 +164,7 @@ export class BlueskyPostClient extends ClientBase {
                         source: "bluesky",
                     },
                     roomId,
-                    embedding: embeddingZeroVector,
+                    embedding: getEmbeddingZeroVector(),
                     createdAt: new Date().getTime(),
                 });
             } catch (error) {

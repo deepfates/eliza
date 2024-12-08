@@ -9,16 +9,60 @@ import {
     Participant,
     IDatabaseAdapter,
 } from "./types.ts";
+import { CircuitBreaker } from "./database/CircuitBreaker";
+import { elizaLogger } from "./logger";
 
 /**
  * An abstract class representing a database adapter for managing various entities
  * like accounts, memories, actors, goals, and rooms.
  */
-export abstract class DatabaseAdapter implements IDatabaseAdapter {
+export abstract class DatabaseAdapter<DB = any> implements IDatabaseAdapter {
     /**
      * The database instance.
      */
-    db: any;
+    db: DB;
+
+    /**
+     * Circuit breaker instance used to handle fault tolerance and prevent cascading failures.
+     * Implements the Circuit Breaker pattern to temporarily disable operations when a failure threshold is reached.
+     *
+     * The circuit breaker has three states:
+     * - CLOSED: Normal operation, requests pass through
+     * - OPEN: Failure threshold exceeded, requests are blocked
+     * - HALF_OPEN: Testing if service has recovered
+     *
+     * @protected
+     */
+    protected circuitBreaker: CircuitBreaker;
+
+    /**
+     * Creates a new DatabaseAdapter instance with optional circuit breaker configuration.
+     *
+     * @param circuitBreakerConfig - Configuration options for the circuit breaker
+     * @param circuitBreakerConfig.failureThreshold - Number of failures before circuit opens (defaults to 5)
+     * @param circuitBreakerConfig.resetTimeout - Time in ms before attempting to close circuit (defaults to 60000)
+     * @param circuitBreakerConfig.halfOpenMaxAttempts - Number of successful attempts needed to close circuit (defaults to 3)
+     */
+    constructor(circuitBreakerConfig?: {
+        failureThreshold?: number;
+        resetTimeout?: number;
+        halfOpenMaxAttempts?: number;
+    }) {
+        this.circuitBreaker = new CircuitBreaker(circuitBreakerConfig);
+    }
+
+    /**
+     * Optional initialization method for the database adapter.
+     * @returns A Promise that resolves when initialization is complete.
+     */
+    abstract init(): Promise<void>;
+
+    /**
+     * Optional close method for the database adapter.
+     * @returns A Promise that resolves when closing is complete.
+     */
+    abstract close(): Promise<void>;
+
     /**
      * Retrieves an account by its ID.
      * @param userId The UUID of the user account to retrieve.
@@ -39,6 +83,7 @@ export abstract class DatabaseAdapter implements IDatabaseAdapter {
      * @returns A Promise that resolves to an array of Memory objects.
      */
     abstract getMemories(params: {
+        agentId: UUID;
         roomId: UUID;
         count?: number;
         unique?: boolean;
@@ -46,7 +91,7 @@ export abstract class DatabaseAdapter implements IDatabaseAdapter {
     }): Promise<Memory[]>;
 
     abstract getMemoriesByRoomIds(params: {
-        agentId?: UUID;
+        agentId: UUID;
         roomIds: UUID[];
         tableName: string;
     }): Promise<Memory[]>;
@@ -105,6 +150,7 @@ export abstract class DatabaseAdapter implements IDatabaseAdapter {
      */
     abstract searchMemories(params: {
         tableName: string;
+        agentId: UUID;
         roomId: UUID;
         embedding: number[];
         match_threshold: number;
@@ -188,6 +234,7 @@ export abstract class DatabaseAdapter implements IDatabaseAdapter {
      * @returns A Promise that resolves to an array of Goal objects.
      */
     abstract getGoals(params: {
+        agentId: UUID;
         roomId: UUID;
         userId?: UUID | null;
         onlyInProgress?: boolean;
@@ -332,4 +379,27 @@ export abstract class DatabaseAdapter implements IDatabaseAdapter {
     abstract getRelationships(params: {
         userId: UUID;
     }): Promise<Relationship[]>;
+
+    /**
+     * Executes an operation with circuit breaker protection.
+     * @param operation A function that returns a Promise to be executed with circuit breaker protection
+     * @param context A string describing the context/operation being performed for logging purposes
+     * @returns A Promise that resolves to the result of the operation
+     * @throws Will throw an error if the circuit breaker is open or if the operation fails
+     * @protected
+     */
+    protected async withCircuitBreaker<T>(
+        operation: () => Promise<T>,
+        context: string
+    ): Promise<T> {
+        try {
+            return await this.circuitBreaker.execute(operation);
+        } catch (error) {
+            elizaLogger.error(`Circuit breaker error in ${context}:`, {
+                error: error instanceof Error ? error.message : String(error),
+                state: this.circuitBreaker.getState(),
+            });
+            throw error;
+        }
+    }
 }

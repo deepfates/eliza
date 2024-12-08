@@ -1,8 +1,8 @@
-[@ai16z/eliza v1.0.0](../index.md) / Room
+[@ai16z/eliza v0.1.5-alpha.3](../index.md) / Room
 
 # Interface: Room
 
-Represents a room or conversation context, including its ID and a list of participants.
+Represents a conversation room
 
 ## Properties
 
@@ -10,16 +10,20 @@ Represents a room or conversation context, including its ID and a list of partic
 
 > **id**: \`$\{string\}-$\{string\}-$\{string\}-$\{string\}-$\{string\}\`
 
+Unique identifier
+
 #### Defined in
 
-[packages/core/src/types.ts:295](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L295)
+[packages/core/src/types.ts:531](https://github.com/deepfates/eliza/blob/main/packages/core/src/types.ts#L531)
 
----
+***
 
 ### participants
 
 > **participants**: [`Participant`](Participant.md)[]
 
+Room participants
+
 #### Defined in
 
-[packages/core/src/types.ts:296](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L296)
+[packages/core/src/types.ts:534](https://github.com/deepfates/eliza/blob/main/packages/core/src/types.ts#L534)

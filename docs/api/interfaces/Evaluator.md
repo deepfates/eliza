@@ -1,8 +1,8 @@
-[@ai16z/eliza v1.0.0](../index.md) / Evaluator
+[@ai16z/eliza v0.1.5-alpha.3](../index.md) / Evaluator
 
 # Interface: Evaluator
 
-Represents an evaluator, which is used to assess and guide the agent's responses based on the current context and state.
+Evaluator for assessing agent responses
 
 ## Properties
 
@@ -10,66 +10,80 @@ Represents an evaluator, which is used to assess and guide the agent's responses
 
 > `optional` **alwaysRun**: `boolean`
 
+Whether to always run
+
 #### Defined in
 
-[packages/core/src/types.ts:238](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L238)
+[packages/core/src/types.ts:433](https://github.com/deepfates/eliza/blob/main/packages/core/src/types.ts#L433)
 
----
+***
 
 ### description
 
 > **description**: `string`
 
+Detailed description
+
 #### Defined in
 
-[packages/core/src/types.ts:239](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L239)
+[packages/core/src/types.ts:436](https://github.com/deepfates/eliza/blob/main/packages/core/src/types.ts#L436)
 
----
+***
 
 ### similes
 
 > **similes**: `string`[]
 
+Similar evaluator descriptions
+
 #### Defined in
 
-[packages/core/src/types.ts:240](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L240)
+[packages/core/src/types.ts:439](https://github.com/deepfates/eliza/blob/main/packages/core/src/types.ts#L439)
 
----
+***
 
 ### examples
 
 > **examples**: [`EvaluationExample`](EvaluationExample.md)[]
 
+Example evaluations
+
 #### Defined in
 
-[packages/core/src/types.ts:241](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L241)
+[packages/core/src/types.ts:442](https://github.com/deepfates/eliza/blob/main/packages/core/src/types.ts#L442)
 
----
+***
 
 ### handler
 
 > **handler**: [`Handler`](../type-aliases/Handler.md)
 
+Handler function
+
 #### Defined in
 
-[packages/core/src/types.ts:242](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L242)
+[packages/core/src/types.ts:445](https://github.com/deepfates/eliza/blob/main/packages/core/src/types.ts#L445)
 
----
+***
 
 ### name
 
 > **name**: `string`
 
+Evaluator name
+
 #### Defined in
 
-[packages/core/src/types.ts:243](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L243)
+[packages/core/src/types.ts:448](https://github.com/deepfates/eliza/blob/main/packages/core/src/types.ts#L448)
 
----
+***
 
 ### validate
 
 > **validate**: [`Validator`](../type-aliases/Validator.md)
 
+Validation function
+
 #### Defined in
 
-[packages/core/src/types.ts:244](https://github.com/ai16z/eliza/blob/main/packages/core/src/types.ts#L244)
+[packages/core/src/types.ts:451](https://github.com/deepfates/eliza/blob/main/packages/core/src/types.ts#L451)
