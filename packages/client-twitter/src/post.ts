@@ -95,9 +95,6 @@ Current Tweet:
 # INSTRUCTIONS: Respond with appropriate action tags based on the above criteria and the current tweet. An action must meet its threshold to be included.` +
     postActionResponseFooter;
 
-export class TwitterPostClient extends ClientBase {
-    onReady(postImmediately: boolean = true) {
-        const generateNewTweetLoop = () => {
 export class TwitterPostClient {
     client: ClientBase;
     runtime: IAgentRuntime;
@@ -136,6 +133,29 @@ export class TwitterPostClient {
 
             elizaLogger.log(`Next tweet scheduled in ${randomMinutes} minutes`);
         };
+
+        // Add timeline processing loop
+        const generateNewTimelineTweetLoop = async () => {
+            await this.processTweetActions();
+            const minMinutes =
+                parseInt(this.runtime.getSetting("TIMELINE_INTERVAL_MIN")) || 5;
+            const maxMinutes =
+                parseInt(this.runtime.getSetting("TIMELINE_INTERVAL_MAX")) ||
+                30;
+            const randomMinutes =
+                Math.floor(Math.random() * (maxMinutes - minMinutes + 1)) +
+                minMinutes; // Random interval between 5-30 minutes (configurable)
+            const delay = randomMinutes * 60 * 1000;
+
+            setTimeout(() => {
+                generateNewTimelineTweetLoop(); // Set up next iteration
+            }, delay);
+
+            elizaLogger.log(
+                `Next timeline processing scheduled in ${randomMinutes} minutes`
+            );
+        };
+
         if (
             this.runtime.getSetting("POST_IMMEDIATELY") != null &&
             this.runtime.getSetting("POST_IMMEDIATELY") != ""
@@ -150,6 +170,7 @@ export class TwitterPostClient {
         }
 
         generateNewTweetLoop();
+        generateNewTimelineTweetLoop(); // Start the timeline processing loop
     }
 
     constructor(client: ClientBase, runtime: IAgentRuntime) {
@@ -303,12 +324,7 @@ export class TwitterPostClient {
                 "twitter"
             );
 
-            let homeTimeline = [];
-            homeTimeline = await this.fetchHomeTimeline(15);
-            fs.writeFileSync(
-                "tweetcache/home_timeline.json",
-                JSON.stringify(homeTimeline, null, 2)
-            );
+            let homeTimeline = await this.client.fetchHomeTimeline(15);
 
             const results = [];
 
@@ -317,10 +333,24 @@ export class TwitterPostClient {
                 try {
                     elizaLogger.log(`Processing tweet ID: ${tweet.id}`);
 
-                    // Handle memory storage / checking if the tweet has already been posted / interacted with
+                    // Check if we've already processed this tweet using lastCheckedTweetId
+                    if (
+                        this.client.lastCheckedTweetId &&
+                        BigInt(tweet.id) <= this.client.lastCheckedTweetId
+                    ) {
+                        elizaLogger.log(
+                            `Already processed tweet ${tweet.id}, skipping`
+                        );
+                        continue;
+                    }
+
+                    // Handle memory storage / checking if the tweet has already been posted
+                    const tweetId = stringToUuid(
+                        tweet.id + "-" + this.runtime.agentId
+                    );
                     const memory =
                         await this.runtime.messageManager.getMemoryById(
-                            stringToUuid(tweet.id + "-" + this.runtime.agentId)
+                            tweetId
                         );
 
                     if (memory) {
@@ -328,24 +358,18 @@ export class TwitterPostClient {
                             `Post interacted with this tweet ID already: ${tweet.id}`
                         );
                         continue;
-                    } else {
-                        elizaLogger.log(
-                            `new tweet to interact with: ${tweet.id}`
-                        );
+                    }
 
-                        elizaLogger.log(`Saving incoming tweet to memory...`);
+                    elizaLogger.log(`new tweet to interact with: ${tweet.id}`);
 
-                        const saveToMemory =
-                            await this.saveIncomingTweetToMemory(tweet);
-                        if (!saveToMemory) {
-                            elizaLogger.log(
-                                `Skipping tweet ${tweet.id} due to save failure`
-                            );
-                            continue;
-                        }
+                    // Save tweet to memory before processing
+                    const saveToMemory =
+                        await this.saveIncomingTweetToMemory(tweet);
+                    if (!saveToMemory) {
                         elizaLogger.log(
-                            `Incoming Tweet ${tweet.id} saved to memory`
+                            `Skipping tweet ${tweet.id} due to save failure`
                         );
+                        continue;
                     }
 
                     const formatTweet = (tweet: any): string => {
@@ -398,7 +422,9 @@ export class TwitterPostClient {
                         if (actionResponse.like) {
                             // const likeResponse =
                             try {
-                                await this.twitterClient.likeTweet(tweet.id);
+                                await this.client.twitterClient.likeTweet(
+                                    tweet.id
+                                );
                                 elizaLogger.log(
                                     `Successfully liked tweet ${tweet.id}`
                                 );
@@ -430,7 +456,9 @@ export class TwitterPostClient {
                         if (actionResponse.retweet) {
                             try {
                                 // const retweetResponse =
-                                await this.twitterClient.retweet(tweet.id);
+                                await this.client.twitterClient.retweet(
+                                    tweet.id
+                                );
                                 executedActions.push("retweet");
                                 elizaLogger.log(
                                     `Successfully retweeted tweet ${tweet.id}`
@@ -475,7 +503,7 @@ export class TwitterPostClient {
 
                             try {
                                 const quoteResponse =
-                                    await this.twitterClient.sendQuoteTweet(
+                                    await this.client.twitterClient.sendQuoteTweet(
                                         tweetContent,
                                         tweet.id
                                     );
@@ -537,6 +565,9 @@ export class TwitterPostClient {
                         );
                         continue;
                     }
+
+                    // Update lastCheckedTweetId after processing
+                    this.client.lastCheckedTweetId = BigInt(tweet.id);
                 } catch (error) {
                     elizaLogger.error(
                         `Error processing tweet ${tweet.id}:`,
@@ -545,6 +576,9 @@ export class TwitterPostClient {
                     continue;
                 }
             }
+
+            // Save the latest checked tweet ID
+            await this.client.cacheLatestCheckedTweetId();
 
             return results;
         } catch (error) {
@@ -638,7 +672,7 @@ export class TwitterPostClient {
                 roomId
             );
 
-            await this.cacheTweet(newTweet);
+            await this.client.cacheTweet(newTweet);
 
             await this.runtime.messageManager.createMemory({
                 id: stringToUuid(postId + "-" + this.runtime.agentId),
@@ -650,7 +684,7 @@ export class TwitterPostClient {
                     source: "twitter",
                 },
                 roomId,
-                embedding: embeddingZeroVector,
+                embedding: getEmbeddingZeroVector(),
                 createdAt: newTweet.timestamp * 1000,
             });
 
@@ -681,7 +715,7 @@ export class TwitterPostClient {
             const tweetContent = await this.generateTweetContent(tweetState);
             elizaLogger.log("Generated text only tweet content:", tweetContent);
 
-            const tweetResponse = await this.twitterClient.sendTweet(
+            const tweetResponse = await this.client.twitterClient.sendTweet(
                 tweetContent,
                 tweet.id
             );
@@ -725,7 +759,7 @@ export class TwitterPostClient {
                 roomId
             );
 
-            await this.cacheTweet(tweet);
+            await this.client.cacheTweet(tweet);
 
             await this.runtime.messageManager.createMemory({
                 id: stringToUuid(postId + "-" + this.runtime.agentId),
@@ -737,7 +771,7 @@ export class TwitterPostClient {
                     source: "twitter",
                 },
                 roomId,
-                embedding: embeddingZeroVector,
+                embedding: getEmbeddingZeroVector(),
                 createdAt: tweet.timestamp * 1000,
             });
 

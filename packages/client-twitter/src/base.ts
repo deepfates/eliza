@@ -9,7 +9,12 @@ import {
     elizaLogger,
     stringToUuid,
 } from "@ai16z/eliza";
-import { QueryTweetsResponse, Scraper, SearchMode, Tweet } from "goat-x";
+import {
+    QueryTweetsResponse,
+    Scraper,
+    SearchMode,
+    Tweet,
+} from "agent-twitter-client";
 import { EventEmitter } from "events";
 
 export function extractAnswer(text: string): string {
@@ -88,6 +93,9 @@ export class ClientBase extends EventEmitter {
     requestQueue: RequestQueue = new RequestQueue();
 
     profile: TwitterProfile | null;
+
+    // Add new property to track seen tweets
+    private seenTweetIds: Set<string> = new Set();
 
     async cacheTweet(tweet: Tweet): Promise<void> {
         if (!tweet) {
@@ -209,61 +217,86 @@ export class ClientBase extends EventEmitter {
             throw new Error("Failed to load profile");
         }
 
+        await this.loadSeenTweetIds();
         await this.loadLatestCheckedTweetId();
         await this.populateTimeline();
     }
 
     async fetchHomeTimeline(count: number): Promise<Tweet[]> {
         elizaLogger.debug("fetching home timeline");
-        const homeTimeline = await this.twitterClient.getUserTweets(
-            this.profile.id,
-            count
+
+        // Only include non-null seenIds
+        const seenIds = Array.from(this.seenTweetIds).filter(
+            (id) => id != null
         );
 
-        // console.dir(homeTimeline, { depth: Infinity });
+        try {
+            const homeTimeline = await this.twitterClient.fetchHomeTimeline(
+                count,
+                seenIds
+            );
 
-        return homeTimeline.tweets;
-        // .filter((t) => t.__typename !== "TweetWithVisibilityResults")
-        // .map((tweet) => {
-        //     // console.log("tweet is", tweet);
-        //     const obj = {
-        //         id: tweet.id,
-        //         name:
-        //             tweet.name ??
-        //             tweet. ?.user_results?.result?.legacy.name,
-        //         username:
-        //             tweet.username ??
-        //             tweet.core?.user_results?.result?.legacy.screen_name,
-        //         text: tweet.text ?? tweet.legacy?.full_text,
-        //         inReplyToStatusId:
-        //             tweet.inReplyToStatusId ??
-        //             tweet.legacy?.in_reply_to_status_id_str,
-        //         createdAt: tweet.createdAt ?? tweet.legacy?.created_at,
-        //         userId: tweet.userId ?? tweet.legacy?.user_id_str,
-        //         conversationId:
-        //             tweet.conversationId ??
-        //             tweet.legacy?.conversation_id_str,
-        //         hashtags: tweet.hashtags ?? tweet.legacy?.entities.hashtags,
-        //         mentions:
-        //             tweet.mentions ?? tweet.legacy?.entities.user_mentions,
-        //         photos:
-        //             tweet.photos ??
-        //             tweet.legacy?.entities.media?.filter(
-        //                 (media) => media.type === "photo"
-        //             ) ??
-        //             [],
-        //         thread: [],
-        //         urls: tweet.urls ?? tweet.legacy?.entities.urls,
-        //         videos:
-        //             tweet.videos ??
-        //             tweet.legacy?.entities.media?.filter(
-        //                 (media) => media.type === "video"
-        //             ) ??
-        //             [],
-        //     };
-        //     // console.log("obj is", obj);
-        //     return obj;
-        // });
+            if (!homeTimeline || !homeTimeline.length) {
+                elizaLogger.warn("No tweets found in home timeline");
+                return [];
+            }
+
+            // Transform the raw tweets into our expected format
+            const transformedTweets = homeTimeline
+                .map((tweet) => {
+                    const transformedTweet = {
+                        id: tweet.rest_id || tweet.legacy?.id_str,
+                        name: tweet.core?.user_results?.result?.legacy?.name,
+                        username:
+                            tweet.core?.user_results?.result?.legacy
+                                ?.screen_name,
+                        text: tweet.legacy?.full_text,
+                        inReplyToStatusId:
+                            tweet.legacy?.in_reply_to_status_id_str,
+                        createdAt: tweet.legacy?.created_at,
+                        userId:
+                            tweet.core?.user_results?.result?.rest_id ||
+                            tweet.legacy?.user_id_str,
+                        conversationId: tweet.legacy?.conversation_id_str,
+                        hashtags: tweet.legacy?.entities?.hashtags || [],
+                        mentions: tweet.legacy?.entities?.user_mentions || [],
+                        photos:
+                            tweet.legacy?.extended_entities?.media?.filter(
+                                (media) => media.type === "photo"
+                            ) || [],
+                        urls: tweet.legacy?.entities?.urls || [],
+                        videos:
+                            tweet.legacy?.extended_entities?.media?.filter(
+                                (media) => media.type === "video"
+                            ) || [],
+                        thread: [],
+                        timestamp:
+                            new Date(tweet.legacy?.created_at).getTime() / 1000,
+                        permanentUrl: `https://twitter.com/${tweet.core?.user_results?.result?.legacy?.screen_name}/status/${tweet.rest_id}`,
+                    };
+
+                    // Cache the transformed tweet
+                    if (transformedTweet.id) {
+                        this.seenTweetIds.add(transformedTweet.id);
+                        this.cacheTweet(transformedTweet);
+                    }
+
+                    return transformedTweet;
+                })
+                .filter((tweet) => tweet.id != null); // Filter out any tweets without IDs
+
+            // Persist seen tweet IDs to cache
+            await this.runtime.cacheManager.set(
+                `twitter/${this.profile.username}/seen_tweet_ids`,
+                Array.from(this.seenTweetIds),
+                { expires: Date.now() + 24 * 60 * 60 * 1000 } // 24 hours
+            );
+
+            return transformedTweets;
+        } catch (error) {
+            elizaLogger.error("Error fetching home timeline:", error);
+            return [];
+        }
     }
 
     async fetchSearchTweets(
@@ -345,14 +378,18 @@ export class ClientBase extends EventEmitter {
                         )
                 );
 
-                console.log({
-                    processingTweets: tweetsToSave
-                        .map((tweet) => tweet.id)
-                        .join(","),
-                });
+                elizaLogger.debug(
+                    "Processing tweets: " +
+                        tweetsToSave.map((tweet) => tweet.id).join(", ")
+                );
 
                 // Save the missing tweets as memories
                 for (const tweet of tweetsToSave) {
+                    if (!tweet.id) {
+                        elizaLogger.warn("Tweet missing ID, skipping:", tweet);
+                        continue;
+                    }
+
                     elizaLogger.log("Saving Tweet", tweet.id);
 
                     const roomId = stringToUuid(
@@ -395,7 +432,11 @@ export class ClientBase extends EventEmitter {
                             : undefined,
                     } as Content;
 
-                    elizaLogger.log("Creating memory for tweet", tweet.id);
+                    elizaLogger.log(
+                        "Creating memory for tweet",
+                        tweet.id,
+                        tweet.text
+                    );
 
                     // check if it already exists
                     const memory =
@@ -473,9 +514,10 @@ export class ClientBase extends EventEmitter {
                 )
         );
 
-        elizaLogger.debug({
-            processingTweets: tweetsToSave.map((tweet) => tweet.id).join(","),
-        });
+        elizaLogger.debug(
+            "Processing tweets: " +
+                tweetsToSave.map((tweet) => tweet.id).join(", ")
+        );
 
         await this.runtime.ensureUserExists(
             this.runtime.agentId,
@@ -486,6 +528,11 @@ export class ClientBase extends EventEmitter {
 
         // Save the new tweets as memories
         for (const tweet of tweetsToSave) {
+            if (!tweet.id) {
+                elizaLogger.warn("Tweet missing ID, skipping:", tweet);
+                continue;
+            }
+
             elizaLogger.log("Saving Tweet", tweet.id);
 
             const roomId = stringToUuid(
@@ -682,6 +729,16 @@ export class ClientBase extends EventEmitter {
             console.error("Error fetching Twitter profile:", error);
 
             return undefined;
+        }
+    }
+
+    // Add method to load seen tweet IDs during initialization
+    private async loadSeenTweetIds(): Promise<void> {
+        const cached = await this.runtime.cacheManager.get<string[]>(
+            `twitter/${this.profile.username}/seen_tweet_ids`
+        );
+        if (cached) {
+            this.seenTweetIds = new Set(cached);
         }
     }
 }

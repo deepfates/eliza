@@ -1,4 +1,4 @@
-import { Tweet } from "goat-x";
+import { Tweet } from "agent-twitter-client";
 import { getEmbeddingZeroVector } from "@ai16z/eliza";
 import { Content, Memory, UUID } from "@ai16z/eliza";
 import { stringToUuid } from "@ai16z/eliza";
@@ -175,9 +175,9 @@ export async function sendTweet(
     twitterUsername: string,
     replyToId?: string
 ): Promise<Memory[]> {
-    const tweetChunks = splitTweetContent(content.text);
+    const tweetChunks = splitTweetContent(response.text);
     const sentTweets: Tweet[] = [];
-    let previousTweetId = inReplyTo;
+    let previousTweetId = replyToId;
 
     for (const chunk of tweetChunks) {
         const result = await client.requestQueue.add(
@@ -238,11 +238,7 @@ export async function sendTweet(
         createdAt: tweet.timestamp * 1000,
     }));
 
-        return memories;
-    } catch (error) {
-        elizaLogger.error("Error in sendTweet:", error);
-        throw error; // Re-throw to be handled by caller
-    }
+    return memories;
 }
 
 function splitTweetContent(content: string): string[] {

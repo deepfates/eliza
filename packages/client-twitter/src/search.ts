@@ -1,4 +1,4 @@
-import { SearchMode } from "goat-x";
+import { SearchMode } from "agent-twitter-client";
 import fs from "fs";
 import { composeContext } from "@ai16z/eliza";
 import { generateMessageResponse, generateText } from "@ai16z/eliza";
