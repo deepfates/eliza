@@ -67,7 +67,7 @@ export const generateImage = async (
             });
             const urls: string[] = [];
             for (let i = 0; i < response.data.length; i++) {
-                //@ts-expect-error
+                //@ts-expect-error not sure why we use url here
                 const url = response.data[i].url;
                 urls.push(url);
             }
