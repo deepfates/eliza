@@ -12,7 +12,7 @@ import {
     FeedViewPost,
     PostView,
 } from "@atproto/api/dist/client/types/app/bsky/feed/defs";
-import { elizaLogger, embeddingZeroVector } from "@ai16z/eliza";
+import { elizaLogger, getEmbeddingZeroVector } from "@ai16z/eliza";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -172,7 +172,6 @@ export class ClientBase extends EventEmitter {
 
             const existingMemories =
                 await this.runtime.messageManager.getMemoriesByRoomIds({
-                    agentId: this.runtime.agentId,
                     roomIds: cachedResults.map((post) =>
                         stringToUuid(post.cid + "-" + this.runtime.agentId)
                     ),
@@ -246,7 +245,7 @@ export class ClientBase extends EventEmitter {
                         content: content,
                         agentId: this.runtime.agentId,
                         roomId,
-                        embedding: embeddingZeroVector,
+                        embedding: getEmbeddingZeroVector(),
                         createdAt: new Date().getTime(),
                     });
                 }
@@ -283,7 +282,6 @@ export class ClientBase extends EventEmitter {
 
         const existingMemories =
             await this.runtime.messageManager.getMemoriesByRoomIds({
-                agentId: this.runtime.agentId,
                 roomIds: postUuids,
             });
 
@@ -338,7 +336,7 @@ export class ClientBase extends EventEmitter {
                 content: content,
                 agentId: this.runtime.agentId,
                 roomId,
-                embedding: embeddingZeroVector,
+                embedding: getEmbeddingZeroVector(),
                 createdAt: new Date().getTime(),
             });
         }
@@ -351,7 +349,6 @@ export class ClientBase extends EventEmitter {
             const recentMessage = await this.runtime.messageManager.getMemories(
                 {
                     roomId: message.roomId,
-                    agentId: this.runtime.agentId,
                     count: 1,
                     unique: false,
                 }
@@ -365,7 +362,7 @@ export class ClientBase extends EventEmitter {
             } else {
                 await this.runtime.messageManager.createMemory({
                     ...message,
-                    embedding: embeddingZeroVector,
+                    embedding: getEmbeddingZeroVector(),
                 });
             }
 
